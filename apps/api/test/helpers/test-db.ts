@@ -18,6 +18,7 @@ export async function startTestDb(): Promise<TestDb> {
   process.env.DATABASE_URL = container.getConnectionUri();
   process.env.APP_ENCRYPTION_KEY = randomBytes(32).toString('hex');
   process.env.ALTEGIO_PARTNER_TOKEN = 'test_token';
+  process.env.ALTEGIO_USER_TOKEN = 'test_user';
   process.env.REDIS_URL = 'redis://localhost:6379';
 
   const ds = new DataSource({
