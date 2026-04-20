@@ -7,6 +7,7 @@ import { AltegioModule } from './modules/altegio/altegio.module';
 import { SyncModule } from './modules/sync/sync.module';
 import { MetricsModule } from './modules/metrics/metrics.module';
 import { ReportsModule } from './modules/reports/reports.module';
+import { TelegramModule } from './modules/telegram/telegram.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { ReportsModule } from './modules/reports/reports.module';
     SyncModule,
     MetricsModule,
     ReportsModule,
+    TelegramModule,
   ],
 })
 export class AppModule {}
