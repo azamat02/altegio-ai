@@ -1,23 +1,6 @@
 import { renderReport, buildAttention } from './template.renderer';
+import { baseFixture as base } from './__fixtures__/report-data';
 import type { DailyReportData } from '@altegio/shared';
-
-const base: DailyReportData = {
-  tenant: { id: 't', salonName: 'Салон №1', timezone: 'Asia/Almaty' },
-  date: '2026-04-19',
-  yesterday: {
-    revenue: 2_340_000, visitsCompleted: 148, visitsCancelled: 41,
-    avgCheck: 35_818, cancelRate: 41 / 189, cancellationLoss: 1_400_000,
-  },
-  baseline7d: { avgRevenue: 2_088_000, avgVisits: 140, avgCancelRate: 0.16 },
-  topStaff: [
-    { staffId: 1, name: 'Айгуль', revenue: 420_000, visits: 11 },
-    { staffId: 2, name: 'Данияр', revenue: 380_000, visits: 9 },
-    { staffId: 3, name: 'Асель', revenue: 310_000, visits: 12 },
-  ],
-  strugglingStaff: [{ staffId: 10, name: 'Марат', consecutiveDaysBelowAvg: 2 }],
-  today: { bookedCount: 87, occupancyPct: 61, emptySlots: ['14:00', '18:00', '19:00'] },
-  cancelClusters: [{ staffName: 'Айгуль', hour: 16, count: 6 }],
-};
 
 describe('renderReport', () => {
   it('renders the happy-path template with all sections', () => {
@@ -65,5 +48,43 @@ describe('renderReport', () => {
     const noSlots: DailyReportData = { ...base, today: { ...base.today, emptySlots: [] } };
     const txt = renderReport(noSlots);
     expect(txt).not.toContain('Пустые слоты:');
+  });
+});
+
+describe('buildAttention rules matrix', () => {
+  it('triggers cancel-spike bullet at 1.3x baseline', () => {
+    const d: DailyReportData = {
+      ...base,
+      baseline7d: { ...base.baseline7d, avgCancelRate: 0.10 },
+      yesterday: { ...base.yesterday, cancelRate: 0.14, visitsCancelled: 10, cancellationLoss: 300_000 },
+    };
+    expect(buildAttention(d)[0]).toMatch(/Рост отмен/);
+  });
+
+  it('does not trigger struggling bullet when list is empty', () => {
+    const d: DailyReportData = { ...base, strugglingStaff: [] };
+    expect(buildAttention(d).every((b) => !b.includes('день подряд'))).toBe(true);
+  });
+
+  it('triggers low-occupancy bullet below 40%', () => {
+    const d: DailyReportData = {
+      ...base,
+      today: { ...base.today, occupancyPct: 25 },
+    };
+    expect(buildAttention(d)).toContain('Низкая загрузка сегодня');
+  });
+
+  it('caps bullets at 3', () => {
+    const d: DailyReportData = {
+      ...base,
+      baseline7d: { ...base.baseline7d, avgCancelRate: 0.05 },
+      yesterday: { ...base.yesterday, cancelRate: 0.5, visitsCancelled: 80, cancellationLoss: 9e6 },
+      strugglingStaff: [
+        { staffId: 1, name: 'X', consecutiveDaysBelowAvg: 2 },
+        { staffId: 2, name: 'Y', consecutiveDaysBelowAvg: 2 },
+      ],
+      today: { ...base.today, occupancyPct: 20 },
+    };
+    expect(buildAttention(d).length).toBe(3);
   });
 });
