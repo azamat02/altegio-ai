@@ -1,0 +1,11 @@
+**/node_modules
+**/dist
+**/.git
+**/coverage
+**/*.log
+.env
+.env.*
+docker
+demo-site
+mockups
+docs
