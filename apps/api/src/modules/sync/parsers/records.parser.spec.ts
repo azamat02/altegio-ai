@@ -45,4 +45,38 @@ describe('RecordsParser', () => {
     const dto = { id: 2, date: '2026-04-01', datetime: '2026-04-01T10:00:00Z', staff_id: 3, client: null, services: [], cost: 0, attendance: 0, paid_full: 0, online: false, seance_length: 0, deleted: false } as AltegioRecordDto;
     expect(parser.toRecordRow('t', dto).altegioClientId).toBeNull();
   });
+
+  it('sums services[].cost * amount when top-level cost is missing', () => {
+    const dto = {
+      id: 99,
+      datetime: '2026-04-20T10:00:00Z',
+      staff_id: 1,
+      services: [
+        { id: 1, title: 'a', cost: 5000, amount: 1 },
+        { id: 2, title: 'b', cost: 2000, amount: 2 },
+      ],
+      attendance: 1,
+      paid_full: 1,
+      online: false,
+      seance_length: 3600,
+      deleted: false,
+    } as any;
+    expect(parser.toRecordRow('t', dto).cost).toBe(9000);
+  });
+
+  it('prefers top-level cost when provided and positive', () => {
+    const dto = {
+      id: 100,
+      datetime: '2026-04-20T10:00:00Z',
+      staff_id: 1,
+      services: [{ id: 1, title: 'a', cost: 2000, amount: 1 }],
+      cost: 5000,
+      attendance: 1,
+      paid_full: 1,
+      online: false,
+      seance_length: 3600,
+      deleted: false,
+    } as any;
+    expect(parser.toRecordRow('t', dto).cost).toBe(5000);
+  });
 });

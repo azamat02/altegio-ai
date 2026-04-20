@@ -15,6 +15,15 @@ export interface RecordRow {
   deleted: boolean;
 }
 
+function computeCost(dto: AltegioRecordDto): number {
+  if (dto.cost && Number(dto.cost) > 0) return Number(dto.cost);
+  return (dto.services ?? []).reduce((sum, s) => {
+    const unit = Number(s.cost ?? s.cost_to_pay ?? 0);
+    const amount = Number(s.amount ?? 1);
+    return sum + unit * amount;
+  }, 0);
+}
+
 @Injectable()
 export class RecordsParser {
   toRecordRow(tenantId: string, dto: AltegioRecordDto): RecordRow {
@@ -24,8 +33,8 @@ export class RecordsParser {
       altegioStaffId: dto.staff_id ?? null,
       altegioClientId: dto.client?.id ?? null,
       datetime: new Date(dto.datetime),
-      seanceLength: dto.seance_length ?? null,
-      cost: Number(dto.cost ?? 0),
+      seanceLength: Number(dto.seance_length ?? dto.length ?? 0) || null,
+      cost: computeCost(dto),
       attendance: dto.attendance ?? 0,
       paidFull: dto.paid_full ?? 0,
       isOnline: Boolean(dto.online),
