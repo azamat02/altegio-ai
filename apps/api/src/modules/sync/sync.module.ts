@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { BullModule } from '@nestjs/bullmq';
 import { AltegioRawRecordEntity } from './entities/altegio-raw-record.entity';
 import { AltegioRawClientEntity } from './entities/altegio-raw-client.entity';
 import { AltegioRawStaffEntity } from './entities/altegio-raw-staff.entity';
@@ -12,6 +13,7 @@ import { StaffParser } from './parsers/staff.parser';
 import { ServicesParser } from './parsers/services.parser';
 import { ClientsParser } from './parsers/clients.parser';
 import { SyncService } from './sync.service';
+import { SyncProcessor } from './sync.processor';
 import { TenantsModule } from '../tenants/tenants.module';
 import { AltegioModule } from '../altegio/altegio.module';
 
@@ -24,6 +26,7 @@ import { AltegioModule } from '../altegio/altegio.module';
       AltegioRawServiceEntity,
       SyncJobEntity,
     ]),
+    BullModule.registerQueue({ name: 'sync' }),
     TenantsModule,
     AltegioModule,
   ],
@@ -31,6 +34,7 @@ import { AltegioModule } from '../altegio/altegio.module';
     RawWriterService, AggregatorService,
     RecordsParser, StaffParser, ServicesParser, ClientsParser,
     SyncService,
+    SyncProcessor,
   ],
   exports: [SyncService, AggregatorService],
 })
