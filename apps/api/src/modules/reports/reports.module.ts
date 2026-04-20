@@ -5,12 +5,20 @@ import { MetricsModule } from '../metrics/metrics.module';
 import { ReportsService } from './reports.service';
 import { AiInsightService, AnthropicAdapter, IAnthropicAdapter } from './ai-insight.service';
 import { AiInsightLogEntity } from './entities/ai-insight-log.entity';
+import { ReportDeliveryEntity } from './entities/report-delivery.entity';
+import { TelegramModule } from '../telegram/telegram.module';
+import { TenantsModule } from '../tenants/tenants.module';
 import { loadConfig } from '../../config/app.config';
 
 const ANTHROPIC_ADAPTER = 'ANTHROPIC_ADAPTER';
 
 @Module({
-  imports: [MetricsModule, TypeOrmModule.forFeature([AiInsightLogEntity])],
+  imports: [
+    MetricsModule,
+    TelegramModule,
+    TenantsModule,
+    TypeOrmModule.forFeature([AiInsightLogEntity, ReportDeliveryEntity]),
+  ],
   providers: [
     ReportsService,
     {
