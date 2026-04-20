@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import { addSalonCommand } from './commands/add-salon';
 import { linkTelegramCommand } from './commands/link-telegram';
 import { triggerSyncCommand } from './commands/trigger-sync';
+import { triggerReportCommand } from './commands/trigger-report';
 
 const program = new Command('altegio-cli')
   .description('Altegio AI admin CLI');
@@ -9,6 +10,7 @@ const program = new Command('altegio-cli')
 program.addCommand(addSalonCommand());
 program.addCommand(linkTelegramCommand());
 program.addCommand(triggerSyncCommand());
+program.addCommand(triggerReportCommand());
 
 // pnpm passes a literal "--" as the first extra arg when using `pnpm cli -- <cmd>`.
 // Strip it so Commander can correctly parse the subcommand.
