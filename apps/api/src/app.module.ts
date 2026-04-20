@@ -6,6 +6,7 @@ import { TenantsModule } from './modules/tenants/tenants.module';
 import { AltegioModule } from './modules/altegio/altegio.module';
 import { SyncModule } from './modules/sync/sync.module';
 import { MetricsModule } from './modules/metrics/metrics.module';
+import { ReportsModule } from './modules/reports/reports.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { MetricsModule } from './modules/metrics/metrics.module';
     AltegioModule,
     SyncModule,
     MetricsModule,
+    ReportsModule,
   ],
 })
 export class AppModule {}
