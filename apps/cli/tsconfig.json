@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "noEmit": true,
+    "declaration": false,
+    "paths": {
+      "@altegio/shared": ["../../packages/shared/dist"],
+      "@altegio/shared/*": ["../../packages/shared/dist/*"]
+    }
+  },
+  "include": ["src/**/*"]
+}

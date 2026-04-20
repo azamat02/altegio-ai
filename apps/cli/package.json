@@ -1,0 +1,26 @@
+{
+  "name": "@altegio/cli",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "DOTENV_CONFIG_PATH=../../.env node -r dotenv/config -r tsconfig-paths/register -r ts-node/register src/main.ts"
+  },
+  "dependencies": {
+    "@altegio/api": "workspace:*",
+    "@altegio/shared": "workspace:*",
+    "@nestjs/common": "^10.3.0",
+    "@nestjs/core": "^10.3.0",
+    "commander": "^12.0.0",
+    "dotenv": "^16.4.0",
+    "reflect-metadata": "^0.2.0",
+    "rxjs": "^7.8.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "ts-node": "^10.9.0",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.4.0"
+  }
+}
