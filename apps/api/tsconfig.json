@@ -3,7 +3,11 @@
   "compilerOptions": {
     "outDir": "./dist",
     "rootDir": "./src",
-    "declaration": false
+    "declaration": false,
+    "paths": {
+      "@altegio/shared": ["../../packages/shared/dist"],
+      "@altegio/shared/*": ["../../packages/shared/dist/*"]
+    }
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "test"]
