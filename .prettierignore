@@ -1,0 +1,6 @@
+dist
+node_modules
+coverage
+demo-site
+mockups
+pnpm-lock.yaml
