@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Altegio API Tester v6</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Unbounded:wght@400;700&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0a0f; --surface: #111118; --surface2: #1a1a24;
+    --border: #2a2a3a; --accent: #f0c040; --accent2: #7c6fff;
+    --text: #e8e8f0; --muted: #666680; --success: #40d080;
+    --error: #ff5555; --warn: #ff9944; --info: #40d0d0; --patch: #60b0ff;
+    --mono: 'JetBrains Mono', monospace; --display: 'Unbounded', sans-serif;
+  }
+  body { background: var(--bg); color: var(--text); font-family: var(--mono); min-height: 100vh; padding: 24px; font-size: 13px; line-height: 1.6; }
+  .header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 4px; }
+  .logo { font-family: var(--display); font-size: 18px; font-weight: 700; color: var(--accent); }
+  .logo span { color: var(--muted); font-weight: 400; font-size: 12px; font-family: var(--mono); }
+  .subtitle { font-size: 11px; color: var(--success); margin-bottom: 20px; }
+  .layout { display: grid; grid-template-columns: 440px 1fr; gap: 20px; max-width: 1500px; }
+  .left-col { display: flex; flex-direction: column; gap: 14px; }
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .panel-header { padding: 10px 16px; border-bottom: 1px solid var(--border); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+  .dot.purple { background: var(--accent2); }
+  .dot.green { background: var(--success); }
+  .panel-body { padding: 14px; }
+  label { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-bottom: 4px; }
+  input, textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: var(--mono); font-size: 12px; padding: 8px 12px; outline: none; transition: border-color .2s; margin-bottom: 10px; }
+  input:focus, textarea:focus { border-color: var(--accent2); }
+  textarea { resize: vertical; min-height: 100px; line-height: 1.5; }
+  textarea.json-error { border-color: var(--error); }
+  .auth-tabs { display: flex; gap: 4px; margin-bottom: 12px; }
+  .auth-tab { flex: 1; text-align: center; font-size: 11px; padding: 5px; border-radius: 7px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; font-family: var(--mono); transition: all .15s; }
+  .auth-tab.active { background: var(--surface2); color: var(--text); border-color: var(--accent); }
+  .auth-section { display: none; }
+  .auth-section.active { display: block; }
+  .btn { width: 100%; background: var(--accent); color: #0a0a0f; border: none; border-radius: 8px; font-family: var(--display); font-size: 12px; font-weight: 700; padding: 10px; cursor: pointer; letter-spacing: .04em; transition: opacity .15s, transform .1s; }
+  .btn:hover { opacity: .9; }
+  .btn:active { transform: scale(.99); }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  .btn.secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); margin-bottom: 8px; font-family: var(--mono); font-size: 12px; font-weight: 500; letter-spacing: 0; }
+  .btn.secondary:hover { border-color: var(--accent2); }
+  .btn.small { width: auto; padding: 4px 10px; font-size: 10px; font-family: var(--mono); font-weight: 500; letter-spacing: 0; }
+  .btn.danger { background: transparent; color: var(--error); border: 1px solid var(--border); }
+  .token-result { background: var(--surface2); border: 1px solid var(--success); border-radius: 8px; padding: 8px 12px; margin-bottom: 10px; display: none; }
+  .token-result.visible { display: block; }
+  .tr-label { font-size: 10px; color: var(--success); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 2px; }
+  .tr-val { font-size: 11px; color: var(--text); word-break: break-all; }
+  .divider { border: none; border-top: 1px solid var(--border); margin: 2px 0 10px; }
+  .auth-footer { display: flex; gap: 6px; align-items: center; margin-top: 4px; }
+
+  /* Endpoints panel */
+  .ep-scroll { max-height: calc(100vh - 340px); overflow-y: auto; padding-right: 4px; }
+  .ep-scroll::-webkit-scrollbar { width: 4px; }
+  .ep-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  .ep-search { margin-bottom: 10px; }
+  .ep-search input { margin-bottom: 0; }
+  .ep-group { margin-bottom: 6px; }
+  .ep-group-header { display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 4px 0; user-select: none; }
+  .ep-group-header:hover .ep-group-label { color: var(--text); }
+  .ep-group-toggle { font-size: 9px; color: var(--muted); transition: transform .15s; }
+  .ep-group-toggle.collapsed { transform: rotate(-90deg); }
+  .ep-group-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); transition: color .15s; }
+  .ep-group-badge { font-size: 9px; color: var(--muted); background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; margin-left: auto; }
+  .ep-group-badge.v2 { color: var(--info); border-color: rgba(64,208,208,.3); }
+  .endpoints { display: flex; flex-direction: column; gap: 2px; margin: 4px 0; }
+  .endpoints.collapsed { display: none; }
+  .ep { background: var(--surface2); border: 1px solid var(--border); border-radius: 7px; padding: 6px 10px; cursor: pointer; transition: border-color .15s; display: flex; align-items: center; gap: 8px; }
+  .ep:hover { border-color: var(--accent2); }
+  .ep.active { border-color: var(--accent); background: #1e1a0a; }
+  .ep.hidden { display: none; }
+  .ep .method { font-size: 9px; font-weight: 700; padding: 2px 5px; border-radius: 4px; min-width: 38px; text-align: center; flex-shrink: 0; }
+  .ep .method.get { color: var(--accent); background: rgba(240,192,64,.12); }
+  .ep .method.post { color: var(--info); background: rgba(64,208,208,.12); }
+  .ep .method.put { color: var(--warn); background: rgba(255,153,68,.12); }
+  .ep .method.patch { color: var(--patch); background: rgba(96,176,255,.12); }
+  .ep .method.delete { color: var(--error); background: rgba(255,85,85,.12); }
+  .ep .name { font-size: 11px; color: var(--text); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ep .path-hint { font-size: 9px; color: var(--muted); flex-shrink: 0; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* Params & Body */
+  .params-panel { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px; margin-bottom: 10px; }
+  .params-title { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 6px; }
+  .param-row { display: grid; grid-template-columns: 140px 1fr; gap: 6px; align-items: center; margin-bottom: 5px; }
+  .param-key { font-size: 11px; color: var(--accent2); }
+  .param-input { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: var(--mono); font-size: 11px; padding: 5px 9px; outline: none; width: 100%; margin-bottom: 0; }
+  .param-input:focus { border-color: var(--accent); }
+  .body-panel { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px; margin-bottom: 10px; }
+  .body-panel textarea { margin-bottom: 0; font-size: 11px; min-height: 80px; }
+  .body-error { font-size: 10px; color: var(--error); margin-top: 4px; display: none; }
+
+  /* Result */
+  .result-panel { position: sticky; top: 24px; }
+  .result-panel .panel-body { display: flex; flex-direction: column; gap: 10px; }
+  .status-bar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--surface2); border-radius: 8px; border: 1px solid var(--border); font-size: 12px; flex-wrap: wrap; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex-shrink: 0; transition: background .3s; }
+  .status-dot.ok { background: var(--success); box-shadow: 0 0 8px var(--success); }
+  .status-dot.err { background: var(--error); box-shadow: 0 0 8px var(--error); }
+  .status-dot.loading { background: var(--accent); animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  .status-text { color: var(--muted); flex: 1; }
+  .status-meta { display: flex; gap: 10px; font-size: 10px; color: var(--muted); }
+  .status-meta span { white-space: nowrap; }
+  .status-code { font-weight: 700; }
+  .status-code.ok { color: var(--success); }
+  .status-code.err { color: var(--error); }
+  .url-display { font-size: 11px; color: var(--accent2); background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; word-break: break-all; min-height: 30px; }
+  .summary-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 6px; }
+  .summary-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; }
+  .sc-label { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1px; }
+  .sc-val { font-size: 16px; font-weight: 700; color: var(--accent); font-family: var(--display); }
+  .sc-sub { font-size: 9px; color: var(--muted); }
+  .tabs { display: flex; gap: 4px; }
+  .tab { font-size: 11px; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; font-family: var(--mono); transition: all .15s; }
+  .tab.active { background: var(--surface2); color: var(--text); border-color: var(--accent2); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+  .json-output { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 12px; overflow: auto; max-height: 560px; font-size: 12px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; min-height: 160px; }
+  .json-key { color: var(--accent2); }
+  .json-str { color: var(--success); }
+  .json-num { color: var(--accent); }
+  .json-bool { color: #ff9966; }
+  .json-null { color: var(--muted); }
+  .copy-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); font-family: var(--mono); font-size: 10px; padding: 3px 9px; border-radius: 5px; cursor: pointer; transition: all .15s; margin-left: auto; }
+  .copy-btn:hover { color: var(--text); border-color: var(--accent2); }
+  .ep-count { font-size: 10px; color: var(--muted); margin-left: 8px; }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="logo">ALTEGIO <span>/ API TESTER v6</span></div>
+</div>
+<div class="subtitle">V1 + V2 endpoints | JSON body editor | localStorage</div>
+
+<div class="layout">
+  <div class="left-col">
+    <!-- AUTH -->
+    <div class="panel">
+      <div class="panel-header"><div class="dot"></div>Авторизация</div>
+      <div class="panel-body">
+        <div class="auth-tabs">
+          <button class="auth-tab active" onclick="switchAuth('token',this)">По токенам</button>
+          <button class="auth-tab" onclick="switchAuth('login',this)">По логину/паролю</button>
+        </div>
+        <div class="auth-section active" id="auth-token">
+          <label>Partner Token</label>
+          <input type="password" id="pt" placeholder="partner token..." autocomplete="off">
+          <label>User Token</label>
+          <input type="password" id="ut" placeholder="user token..." autocomplete="off">
+        </div>
+        <div class="auth-section" id="auth-login">
+          <label>Partner Token</label>
+          <input type="password" id="pt2" placeholder="partner token..." autocomplete="off">
+          <hr class="divider">
+          <label>Email / Телефон</label>
+          <input type="text" id="login-email" placeholder="email от Altegio" autocomplete="off">
+          <label>Пароль</label>
+          <input type="password" id="login-pass" placeholder="пароль" autocomplete="off">
+          <button class="btn secondary" onclick="doAuth()">ПОЛУЧИТЬ USER TOKEN</button>
+          <div class="token-result" id="token-result">
+            <div class="tr-label">User Token получен</div>
+            <div class="tr-val" id="token-val"></div>
+          </div>
+        </div>
+        <label>Location ID (Company ID)</label>
+        <input type="text" id="company-id" placeholder="198823" autocomplete="off">
+        <div class="auth-footer">
+          <button class="btn small secondary" onclick="saveTokens()">Сохранить</button>
+          <button class="btn small danger" onclick="clearTokens()">Очистить</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ENDPOINTS -->
+    <div class="panel">
+      <div class="panel-header"><div class="dot purple"></div>Endpoints<span class="ep-count" id="ep-count"></span></div>
+      <div class="panel-body">
+        <div class="ep-search">
+          <input type="text" id="ep-search" placeholder="Поиск endpoints..." oninput="filterEndpoints(this.value)" style="margin-bottom:0">
+        </div>
+        <div class="ep-scroll" id="ep-container"></div>
+
+        <!-- Params -->
+        <div class="params-panel" id="params-panel" style="display:none; margin-top:10px;">
+          <div class="params-title">Query параметры</div>
+          <div id="params-fields"></div>
+        </div>
+
+        <!-- Body Editor -->
+        <div class="body-panel" id="body-panel" style="display:none; margin-top:10px;">
+          <div class="params-title">Request Body (JSON)</div>
+          <textarea id="body-editor" spellcheck="false"></textarea>
+          <div class="body-error" id="body-error"></div>
+        </div>
+
+        <button class="btn" id="send-btn" onclick="sendRequest()" style="margin-top:10px;">ОТПРАВИТЬ ЗАПРОС</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="panel result-panel">
+    <div class="panel-header">
+      <div class="dot green"></div>Ответ
+      <button class="copy-btn" onclick="copyCurl()">копировать curl</button>
+    </div>
+    <div class="panel-body">
+      <div class="status-bar">
+        <div class="status-dot" id="sdot"></div>
+        <span class="status-text" id="stext">Жду запроса...</span>
+        <span class="status-code" id="scode"></span>
+        <div class="status-meta" id="smeta"></div>
+      </div>
+      <div class="url-display" id="url-display">URL появится здесь</div>
+      <div class="summary-cards" id="summary-cards"></div>
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('raw',this)">Raw JSON</button>
+        <button class="tab" onclick="switchTab('pretty',this)">Pretty</button>
+        <button class="tab" onclick="switchTab('curl',this)">curl</button>
+      </div>
+      <div class="tab-content active" id="tab-raw">
+        <div class="json-output" id="json-raw">// Выбери endpoint и нажми "Отправить"</div>
+      </div>
+      <div class="tab-content" id="tab-pretty">
+        <div class="json-output" id="json-pretty"></div>
+      </div>
+      <div class="tab-content" id="tab-curl">
+        <div class="json-output" id="json-curl">// curl команда появится после запроса</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+// ENDPOINTS DATA
+// ═══════════════════════════════════════════
+const ENDPOINTS = [
+  // ── V1: Auth ──
+  { group: 'Авторизация', version: 'v1', items: [
+    { method: 'POST', path: '/auth', name: 'Авторизация (получить user_token)', params: {}, body: { login: '', password: '' }, noId: true },
+  ]},
+
+  // ── V1: Locations ──
+  { group: 'Локации', version: 'v1', items: [
+    { method: 'GET', path: '/companies', name: 'Список локаций', params: {}, noId: true },
+    { method: 'GET', path: '/company/{id}', name: 'Информация о локации', params: {} },
+    { method: 'POST', path: '/companies', name: 'Создать локацию', params: {}, body: { title: '', address: '' }, noId: true },
+    { method: 'PUT', path: '/company/{id}', name: 'Изменить локацию', params: {}, body: { title: '' } },
+    { method: 'DELETE', path: '/company/{id}', name: 'Удалить локацию', params: {} },
+  ]},
+
+  // ── V1: Appointments ──
+  { group: 'Записи и визиты', version: 'v1', items: [
+    { method: 'GET', path: '/records/{id}', name: 'Список записей', params: { page:'1', count:'25', start_date:'2026-04-01', end_date:'2026-04-16', include_finance_transactions:'1' } },
+    { method: 'GET', path: '/record/{id}/{record_id}', name: 'Детали записи', params: { record_id: '' }, pathReplace: ['record_id'] },
+    { method: 'POST', path: '/records/{id}', name: 'Создать запись', params: {}, body: { staff_id: 0, services: [{ id: 0 }], client: { phone: '', name: '' }, datetime: '2026-04-20T10:00:00', session_length: 3600, save_if_busy: false } },
+    { method: 'PUT', path: '/record/{id}/{record_id}', name: 'Изменить запись', params: { record_id: '' }, body: { attendance: 0 }, pathReplace: ['record_id'] },
+    { method: 'DELETE', path: '/record/{id}/{record_id}', name: 'Удалить запись', params: { record_id: '' }, pathReplace: ['record_id'] },
+    { method: 'GET', path: '/records/partner', name: 'Записи партнёра', params: { page:'1', count:'25' }, noId: true },
+    { method: 'GET', path: '/visits/{visit_id}', name: 'Детали визита', params: { visit_id: '' }, noId: true, pathReplace: ['visit_id'] },
+    { method: 'GET', path: '/visit/details/{id}/{record_id}/{visit_id}', name: 'Полные детали визита', params: { record_id: '', visit_id: '' }, pathReplace: ['record_id','visit_id'] },
+    { method: 'PUT', path: '/visits/{visit_id}/{record_id}', name: 'Изменить визит', params: { visit_id: '', record_id: '' }, body: {}, noId: true, pathReplace: ['visit_id','record_id'] },
+    { method: 'GET', path: '/attendance/receipt_print/{visit_id}', name: 'PDF чек визита', params: { visit_id: '' }, noId: true, pathReplace: ['visit_id'] },
+    { method: 'GET', path: '/comments/{id}', name: 'Комментарии', params: {} },
+  ]},
+
+  // ── V1: Clients ──
+  { group: 'Клиенты', version: 'v1', items: [
+    { method: 'POST', path: '/company/{id}/clients/search', name: 'Поиск клиентов', params: {}, body: { page: 1, count: 25 } },
+    { method: 'GET', path: '/client/{id}/{client_id}', name: 'Карточка клиента', params: { client_id: '' }, pathReplace: ['client_id'] },
+    { method: 'POST', path: '/clients/{id}', name: 'Добавить клиента', params: {}, body: { name: '', phone: '' } },
+    { method: 'PUT', path: '/client/{id}/{client_id}', name: 'Изменить клиента', params: { client_id: '' }, body: { name: '' }, pathReplace: ['client_id'] },
+    { method: 'DELETE', path: '/client/{id}/{client_id}', name: 'Удалить клиента', params: { client_id: '' }, pathReplace: ['client_id'] },
+    { method: 'POST', path: '/clients/{id}/bulk', name: 'Массовое добавление', params: {}, body: { clients: [{ name: '', phone: '' }] } },
+    { method: 'POST', path: '/company/{id}/clients/visits/search', name: 'История визитов клиента', params: {}, body: { client_id: 0 } },
+    { method: 'GET', path: '/clients/{id}', name: 'Список клиентов (deprecated)', params: { page:'1', count:'25' } },
+    { method: 'GET', path: '/clients/{id}/clients/{client_id}/comments', name: 'Комментарии клиента', params: { client_id: '' }, pathReplace: ['client_id'] },
+    { method: 'GET', path: '/company/{id}/clients/files/{client_id}', name: 'Файлы клиента', params: { client_id: '' }, pathReplace: ['client_id'] },
+  ]},
+
+  // ── V1: Services ──
+  { group: 'Услуги', version: 'v1', items: [
+    { method: 'GET', path: '/company/{id}/services/{service_id}', name: 'Услуги / конкретная', params: { service_id: '' }, pathReplace: ['service_id'] },
+    { method: 'GET', path: '/company/{id}/service_categories/{cat_id}', name: 'Категории услуг', params: { cat_id: '' }, pathReplace: ['cat_id'] },
+    { method: 'GET', path: '/services/{id}', name: 'Список услуг (alt)', params: { page:'1', count:'50' } },
+    { method: 'POST', path: '/services/{id}', name: 'Создать услугу', params: {}, body: { title: '', price_min: 0, price_max: 0, duration: 3600 } },
+    { method: 'DELETE', path: '/services/{id}/{service_id}', name: 'Удалить услугу', params: { service_id: '' }, pathReplace: ['service_id'] },
+  ]},
+
+  // ── V1: Team Members ──
+  { group: 'Сотрудники', version: 'v1', items: [
+    { method: 'GET', path: '/company/{id}/staff/{team_member_id}', name: 'Сотрудники / конкретный', params: { team_member_id: '' }, pathReplace: ['team_member_id'] },
+    { method: 'GET', path: '/staff/{id}', name: 'Список сотрудников (alt)', params: { page:'1', count:'50' } },
+    { method: 'POST', path: '/company/{id}/staff/quick', name: 'Быстрое создание сотрудника', params: {}, body: { name: '' } },
+    { method: 'PUT', path: '/staff/{id}/{team_member_id}', name: 'Изменить сотрудника', params: { team_member_id: '' }, body: {}, pathReplace: ['team_member_id'] },
+    { method: 'DELETE', path: '/staff/{id}/{team_member_id}', name: 'Удалить сотрудника', params: { team_member_id: '' }, pathReplace: ['team_member_id'] },
+  ]},
+
+  // ── V1: Analytics ──
+  { group: 'Аналитика', version: 'v1', items: [
+    { method: 'GET', path: '/company/{id}/analytics/overall', name: 'Ключевые метрики', params: { date_from:'2026-04-01', date_to:'2026-04-16' } },
+    { method: 'GET', path: '/company/{id}/analytics/overall/charts/income_daily', name: 'Выручка по дням', params: { date_from:'2026-04-01', date_to:'2026-04-16' } },
+    { method: 'GET', path: '/company/{id}/analytics/overall/charts/fullness_daily', name: 'Загруженность по дням', params: { date_from:'2026-04-01', date_to:'2026-04-16' } },
+    { method: 'GET', path: '/company/{id}/analytics/overall/charts/records_daily', name: 'Записи по дням', params: { date_from:'2026-04-01', date_to:'2026-04-16' } },
+    { method: 'GET', path: '/company/{id}/analytics/overall/charts/record_source', name: 'Источники записей', params: { date_from:'2026-04-01', date_to:'2026-04-16' } },
+    { method: 'GET', path: '/company/{id}/analytics/overall/charts/record_status', name: 'Статусы записей', params: { date_from:'2026-04-01', date_to:'2026-04-16' } },
+    { method: 'GET', path: '/company/{id}/analytics/loyalty_programs/staff', name: 'Возврат по мастерам', params: { date_from:'2026-04-01', date_to:'2026-04-16' } },
+    { method: 'GET', path: '/company/{id}/analytics/loyalty_programs/visits', name: 'Статистика клиентов (loyalty)', params: { date_from:'2026-04-01', date_to:'2026-04-16' } },
+    { method: 'GET', path: '/company/{id}/analytics/loyalty_programs/income', name: 'Статистика выручки (loyalty)', params: { date_from:'2026-04-01', date_to:'2026-04-16' } },
+  ]},
+
+  // ── V1: Finance ──
+  { group: 'Финансы', version: 'v1', items: [
+    { method: 'GET', path: '/accounts/{id}', name: 'Счета / Кассы', params: {} },
+    { method: 'GET', path: '/timetable/transactions/{id}', name: 'Транзакции по визиту/записи', params: { record_id: '', visit_id: '' } },
+    { method: 'GET', path: '/transactions/{id}', name: 'Все транзакции', params: { page:'1', count:'25', start_date:'', end_date:'' } },
+    { method: 'GET', path: '/finance_transactions/{id}/{transaction_id}', name: 'Конкретная транзакция', params: { transaction_id: '' }, pathReplace: ['transaction_id'] },
+    { method: 'POST', path: '/finance_transactions/{id}', name: 'Создать транзакцию', params: {}, body: { amount: 0, account_id: 0, type: 1, description: '' } },
+    { method: 'GET', path: '/storage_operations/documents/finance_transactions/{document_id}', name: 'Транзакции документа', params: { document_id: '' }, noId: true, pathReplace: ['document_id'] },
+    { method: 'GET', path: '/reports/z_report/{id}', name: 'Z-отчёт (дневной)', params: { start_date: '' } },
+  ]},
+
+  // ── V1: Salary ──
+  { group: 'Зарплата', version: 'v1', items: [
+    { method: 'GET', path: '/company/{id}/salary/period/staff/{team_member_id}', name: 'Зарплата за период', params: { team_member_id: '', start_date: '', end_date: '' }, pathReplace: ['team_member_id'] },
+    { method: 'GET', path: '/company/{id}/salary/period/staff/daily/{team_member_id}', name: 'Зарплата по дням', params: { team_member_id: '', start_date: '', end_date: '' }, pathReplace: ['team_member_id'] },
+    { method: 'GET', path: '/company/{id}/salary/calculation/staff/{team_member_id}', name: 'Взаиморасчёты', params: { team_member_id: '', start_date: '', end_date: '' }, pathReplace: ['team_member_id'] },
+    { method: 'GET', path: '/company/{id}/salary/calculation/staff/daily/{team_member_id}', name: 'Взаиморасчёты по дням', params: { team_member_id: '', start_date: '', end_date: '' }, pathReplace: ['team_member_id'] },
+    { method: 'GET', path: '/company/{id}/salary/calculation/staff/{team_member_id}/salary_schemes_count', name: 'Кол-во схем начисления', params: { team_member_id: '', start_date: '', end_date: '' }, pathReplace: ['team_member_id'] },
+    { method: 'GET', path: '/company/{id}/salary/payroll/staff/{team_member_id}/calculation', name: 'Payroll расчёт', params: { team_member_id: '', start_date: '', end_date: '' }, pathReplace: ['team_member_id'] },
+  ]},
+
+  // ── V1: Schedule ──
+  { group: 'Расписание', version: 'v1', items: [
+    { method: 'GET', path: '/company/{id}/staff/schedule', name: 'Расписание сотрудников', params: { start_date:'2026-04-14', end_date:'2026-04-20' } },
+    { method: 'GET', path: '/schedule/{id}/{team_member_id}/{start_date}/{end_date}', name: 'Расписание мастера', params: { team_member_id:'', start_date:'2026-04-14', end_date:'2026-04-20' }, pathReplace: ['team_member_id','start_date','end_date'] },
+    { method: 'GET', path: '/timetable/dates/{id}/{date}', name: 'Даты для записи', params: { date:'2026-04-16' }, pathReplace: ['date'] },
+    { method: 'GET', path: '/timetable/seances/{id}/{team_member_id}/{date}', name: 'Сессии мастера', params: { team_member_id:'', date:'2026-04-16' }, pathReplace: ['team_member_id','date'] },
+    { method: 'GET', path: '/resources/{id}', name: 'Ресурсы локации', params: {} },
+    { method: 'GET', path: '/company/{id}/settings/timetable', name: 'Настройки расписания', params: {} },
+  ]},
+
+  // ── V1: Products ──
+  { group: 'Товары', version: 'v1', items: [
+    { method: 'GET', path: '/goods/{id}', name: 'Список товаров', params: { page:'1', count:'25' } },
+    { method: 'GET', path: '/goods/{id}/{product_id}', name: 'Конкретный товар', params: { product_id:'' }, pathReplace: ['product_id'] },
+    { method: 'GET', path: '/goods/search/{id}', name: 'Поиск товаров', params: { search_term: '' } },
+    { method: 'POST', path: '/goods/{id}', name: 'Создать товар', params: {}, body: { title:'', cost_price:0, price:0 } },
+    { method: 'GET', path: '/company/{id}/goods_categories/{parent_category_id}', name: 'Категории товаров', params: { parent_category_id:'' }, pathReplace: ['parent_category_id'] },
+    { method: 'GET', path: '/goods/category_node/{id}/{category_id}', name: 'Состав категории', params: { category_id:'' }, pathReplace: ['category_id'] },
+  ]},
+
+  // ── V1: Inventory ──
+  { group: 'Склад', version: 'v1', items: [
+    { method: 'GET', path: '/storages/{id}', name: 'Склады локации', params: {} },
+    { method: 'GET', path: '/storages/transactions/{id}', name: 'Складские транзакции', params: { page:'1', count:'25' } },
+    { method: 'GET', path: '/technological_cards/{id}', name: 'Техкарты / расходники', params: {} },
+  ]},
+
+  // ── V1: Sales ──
+  { group: 'Продажи', version: 'v1', items: [
+    { method: 'GET', path: '/company/{id}/sale/{document_id}', name: 'Получить продажу', params: { document_id:'' }, pathReplace: ['document_id'] },
+    { method: 'POST', path: '/company/{id}/sale/{document_id}/payment', name: 'Оплата', params: { document_id:'' }, body: { amount:0, account_id:0 }, pathReplace: ['document_id'] },
+  ]},
+
+  // ── V1: Notifications ──
+  { group: 'Уведомления', version: 'v1', items: [
+    { method: 'POST', path: '/sms/clients/by_id/{id}', name: 'SMS по списку клиентов', params: {}, body: { client_ids: [], text: '' } },
+    { method: 'POST', path: '/sms/clients/by_filter/{id}', name: 'SMS по фильтру', params: {}, body: { text: '' } },
+    { method: 'POST', path: '/email/clients/by_id/{id}', name: 'Email по списку клиентов', params: {}, body: { client_ids: [], text: '', subject: '' } },
+    { method: 'POST', path: '/email/clients/by_filter/{id}', name: 'Email по фильтру', params: {}, body: { text: '', subject: '' } },
+    { method: 'GET', path: '/notification_settings/{id}/notification_types', name: 'Настройки уведомлений', params: {} },
+  ]},
+
+  // ── V1: Loyalty Cards ──
+  { group: 'Карты лояльности', version: 'v1', items: [
+    { method: 'GET', path: '/loyalty/client_cards/{client_id}', name: 'Карты клиента по ID', params: { client_id:'' }, noId: true, pathReplace: ['client_id'] },
+    { method: 'GET', path: '/loyalty/cards/{phone}/{chain_id}/{id}', name: 'Карты по телефону', params: { phone:'', chain_id:'' }, pathReplace: ['phone','chain_id'] },
+    { method: 'GET', path: '/loyalty/card_types/salon/{id}', name: 'Типы карт в локации', params: {} },
+    { method: 'GET', path: '/loyalty/card_types/client/{id}/{phone}', name: 'Типы карт для клиента', params: { phone:'' }, pathReplace: ['phone'] },
+    { method: 'POST', path: '/loyalty/cards/{id}', name: 'Выпустить карту', params: {}, body: { loyalty_card_type_id:0, phone:'' } },
+    { method: 'DELETE', path: '/loyalty/cards/{id}/{card_id}', name: 'Удалить карту', params: { card_id:'' }, pathReplace: ['card_id'] },
+    { method: 'POST', path: '/company/{id}/loyalty/cards/{card_id}/manual_transaction', name: 'Ручная транзакция', params: { card_id:'' }, body: { amount:0, type_id:1 }, pathReplace: ['card_id'] },
+  ]},
+
+  // ── V1: Subscriptions & Certificates ──
+  { group: 'Абонементы и сертификаты', version: 'v1', items: [
+    { method: 'GET', path: '/loyalty/abonements', name: 'Абонементы клиента', params: { phone:'', chain_id:'' }, noId: true },
+    { method: 'GET', path: '/company/{id}/loyalty/abonement_types/search', name: 'Типы абонементов', params: { page:'1', page_size:'25' } },
+    { method: 'GET', path: '/loyalty/certificates', name: 'Сертификаты клиента', params: { phone:'', chain_id:'' }, noId: true },
+    { method: 'GET', path: '/company/{id}/loyalty/certificate_types/search', name: 'Типы сертификатов', params: { page:'1', page_size:'25' } },
+  ]},
+
+  // ── V1: Loyalty Programs ──
+  { group: 'Программы лояльности', version: 'v1', items: [
+    { method: 'GET', path: '/company/{id}/loyalty/programs/search', name: 'Акции в локации', params: {} },
+    { method: 'GET', path: '/visit/loyalty/transactions/{visit_id}', name: 'Транзакции визита', params: { visit_id:'' }, noId: true, pathReplace: ['visit_id'] },
+    { method: 'GET', path: '/loyalty/generate_code/{id}/{product_id}', name: 'Генерация кода', params: { product_id:'' }, pathReplace: ['product_id'] },
+  ]},
+
+  // ── V1: Deposits ──
+  { group: 'Депозиты', version: 'v1', items: [
+    { method: 'GET', path: '/deposits/company/{id}/client/{client_id}', name: 'Счета клиента', params: { client_id:'' }, pathReplace: ['client_id'] },
+    { method: 'POST', path: '/deposits_operations/{id}', name: 'Пополнение счёта', params: {}, body: { client_id:0, amount:0, account_id:0 } },
+  ]},
+
+  // ── V1: Chain Management ──
+  { group: 'Сети (chains)', version: 'v1', items: [
+    { method: 'GET', path: '/groups', name: 'Список сетей', params: {}, noId: true },
+    { method: 'GET', path: '/group/{chain_id}/clients', name: 'Клиент сети по телефону', params: { chain_id:'', phone:'' }, noId: true, pathReplace: ['chain_id'] },
+  ]},
+
+  // ── V1: Users & Permissions ──
+  { group: 'Пользователи и права', version: 'v1', items: [
+    { method: 'GET', path: '/company/{id}/users', name: 'Пользователи локации', params: {} },
+    { method: 'GET', path: '/user/permissions/{id}', name: 'Список прав', params: {} },
+    { method: 'GET', path: '/company/{id}/users/roles', name: 'Роли', params: {} },
+    { method: 'GET', path: '/company/{id}/users/{user_id}/permissions', name: 'Права пользователя', params: { user_id:'' }, pathReplace: ['user_id'] },
+    { method: 'PUT', path: '/company/{id}/users/{user_id}/permissions', name: 'Обновить права', params: { user_id:'' }, body: { role_id:0 }, pathReplace: ['user_id'] },
+  ]},
+
+  // ── V1: Custom Fields ──
+  { group: 'Кастомные поля', version: 'v1', items: [
+    { method: 'GET', path: '/custom_fields/{field_category}/{id}', name: 'Поля локации', params: { field_category:'record' }, pathReplace: ['field_category'] },
+    { method: 'POST', path: '/custom_fields/{field_category}/{id}', name: 'Создать поле', params: { field_category:'record' }, body: { title:'', type:'string', code:'' }, pathReplace: ['field_category'] },
+  ]},
+
+  // ── V1: Events ──
+  { group: 'Групповые занятия', version: 'v1', items: [
+    { method: 'GET', path: '/activity/{id}/search', name: 'Поиск занятий', params: { from:'2026-04-01', to:'2026-04-30' } },
+    { method: 'GET', path: '/activity/{id}/filters', name: 'Фильтры занятий', params: {} },
+    { method: 'POST', path: '/activity/{id}/{event_id}/duplicate', name: 'Дублировать занятие', params: { event_id:'' }, body: { dates: [] }, pathReplace: ['event_id'] },
+  ]},
+
+  // ── V1: Online Booking ──
+  { group: 'Онлайн-запись', version: 'v1', items: [
+    { method: 'GET', path: '/company/{id}/settings/online', name: 'Настройки онлайн-записи', params: {} },
+    { method: 'GET', path: '/company/{id}/settings/timeslots', name: 'Настройки слотов', params: {} },
+    { method: 'GET', path: '/company/{id}/booking_forms', name: 'Виджеты записи', params: {} },
+  ]},
+
+  // ── V1: Fiscalization ──
+  { group: 'Фискализация (ККМ)', version: 'v1', items: [
+    { method: 'GET', path: '/kkm_transactions/{id}', name: 'Фискальные транзакции', params: { page:'1', count:'25' } },
+    { method: 'GET', path: '/integration/kkm/references/tax_system/{country_id}', name: 'Налоговые системы', params: { country_id:'1' }, noId: true, pathReplace: ['country_id'] },
+  ]},
+
+  // ── V1: Utilities ──
+  { group: 'Утилиты', version: 'v1', items: [
+    { method: 'GET', path: '/license/{id}', name: 'Подписка локации', params: {} },
+    { method: 'GET', path: '/validation/validate_phone/{phone}', name: 'Валидация телефона', params: { phone:'' }, noId: true, pathReplace: ['phone'] },
+    { method: 'GET', path: '/tips/{id}/settings', name: 'Настройки чаевых', params: {} },
+  ]},
+
+  // ═══════════════ V2 ═══════════════
+
+  // ── V2: Services ──
+  { group: 'Услуги (V2)', version: 'v2', items: [
+    { method: 'GET', path: '/locations/{id}/services', name: 'Список услуг', params: { 'include': 'category,staff' } },
+    { method: 'GET', path: '/locations/{id}/services/{service_id}', name: 'Конкретная услуга', params: { service_id:'', 'include':'category,staff' }, pathReplace: ['service_id'] },
+    { method: 'GET', path: '/locations/{id}/service_categories', name: 'Категории услуг', params: { 'include':'services' } },
+  ]},
+
+  // ── V2: Products ──
+  { group: 'Товары (V2)', version: 'v2', items: [
+    { method: 'GET', path: '/locations/{id}/products', name: 'Список товаров', params: { 'include':'category,storage_amounts' } },
+    { method: 'GET', path: '/locations/{id}/products/autocomplete', name: 'Автокомплит товаров', params: { search:'' } },
+    { method: 'GET', path: '/locations/{id}/products/{product_id}', name: 'Конкретный товар', params: { product_id:'', 'include':'category' }, pathReplace: ['product_id'] },
+    { method: 'GET', path: '/locations/{id}/product_categories', name: 'Категории товаров', params: { 'include':'children,products' } },
+  ]},
+
+  // ── V2: Team Members ──
+  { group: 'Сотрудники (V2)', version: 'v2', items: [
+    { method: 'GET', path: '/locations/{id}/team_members', name: 'Список сотрудников', params: { 'include':'position,services', deleted:'0', fired:'2' } },
+  ]},
+
+  // ── V2: Positions ──
+  { group: 'Должности (V2)', version: 'v2', items: [
+    { method: 'GET', path: '/companies/{id}/positions', name: 'Список должностей', params: {} },
+    { method: 'POST', path: '/companies/{id}/positions', name: 'Создать должность', params: {}, body: { title:'', salon_ids:[] } },
+    { method: 'GET', path: '/companies/{id}/positions/{position_id}', name: 'Конкретная должность', params: { position_id:'' }, pathReplace: ['position_id'] },
+    { method: 'PUT', path: '/companies/{id}/positions/{position_id}', name: 'Изменить должность', params: { position_id:'' }, body: { title:'', salon_ids:[] }, pathReplace: ['position_id'] },
+    { method: 'DELETE', path: '/companies/{id}/positions/{position_id}', name: 'Удалить должность', params: { position_id:'' }, pathReplace: ['position_id'] },
+  ]},
+
+  // ── V2: Appointments ──
+  { group: 'Записи (V2)', version: 'v2', items: [
+    { method: 'GET', path: '/locations/{id}/appointments', name: 'Список записей', params: { 'include':'client,staff,services', 'filter[start_date]':'2026-04-01T00:00:00', 'filter[end_date]':'2026-04-16T23:59:59' } },
+    { method: 'DELETE', path: '/locations/{id}/appointments/{appointment_id}', name: 'Удалить запись', params: { appointment_id:'' }, pathReplace: ['appointment_id'] },
+  ]},
+
+  // ── V2: Events ──
+  { group: 'Занятия (V2)', version: 'v2', items: [
+    { method: 'GET', path: '/companies/{id}/activities', name: 'Список занятий', params: { 'filter[from]':'2026-04-01 00:00:00', 'filter[to]':'2026-04-30 23:59:59' } },
+    { method: 'GET', path: '/companies/{id}/activities/{event_id}', name: 'Конкретное занятие', params: { event_id:'' }, pathReplace: ['event_id'] },
+    { method: 'POST', path: '/companies/{id}/activities', name: 'Создать занятие', params: {}, body: { title:'', datetime:'2026-04-20T10:00:00', session_length:3600 } },
+    { method: 'DELETE', path: '/companies/{id}/activities/{event_id}', name: 'Удалить занятие', params: { event_id:'' }, pathReplace: ['event_id'] },
+  ]},
+
+  // ── V2: Tags ──
+  { group: 'Теги (V2)', version: 'v2', items: [
+    { method: 'GET', path: '/companies/{id}/tags', name: 'Список тегов', params: { entity:'client' } },
+    { method: 'POST', path: '/companies/{id}/tags', name: 'Создать тег', params: {}, body: { title:'', color:'#ff0000', entity_type:1 } },
+    { method: 'DELETE', path: '/companies/{id}/tags/{tag_id}', name: 'Удалить тег', params: { tag_id:'' }, pathReplace: ['tag_id'] },
+  ]},
+];
+
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+let selectedEp = null;
+let selectedGroup = null;
+let currentParams = {};
+let currentBody = null;
+let cachedUserToken = '';
+let lastCurl = '';
+const collapsedGroups = new Set();
+
+// ═══════════════════════════════════════════
+// RENDER ENDPOINTS
+// ═══════════════════════════════════════════
+function renderEndpoints() {
+  const container = document.getElementById('ep-container');
+  container.innerHTML = '';
+  let totalCount = 0;
+
+  ENDPOINTS.forEach((group, gi) => {
+    const groupDiv = document.createElement('div');
+    groupDiv.className = 'ep-group';
+    groupDiv.dataset.groupIndex = gi;
+
+    const isCollapsed = collapsedGroups.has(gi);
+    const itemCount = group.items.length;
+    totalCount += itemCount;
+
+    groupDiv.innerHTML = `
+      <div class="ep-group-header" onclick="toggleGroup(${gi})">
+        <span class="ep-group-toggle ${isCollapsed?'collapsed':''}">&#9660;</span>
+        <span class="ep-group-label">${group.group}</span>
+        <span class="ep-group-badge ${group.version}">${group.version.toUpperCase()} (${itemCount})</span>
+      </div>
+      <div class="endpoints ${isCollapsed?'collapsed':''}" id="ep-list-${gi}"></div>
+    `;
+    container.appendChild(groupDiv);
+
+    const listEl = groupDiv.querySelector('.endpoints');
+    group.items.forEach((ep, ei) => {
+      const epDiv = document.createElement('div');
+      epDiv.className = 'ep';
+      epDiv.dataset.gi = gi;
+      epDiv.dataset.ei = ei;
+      epDiv.innerHTML = `
+        <span class="method ${ep.method.toLowerCase()}">${ep.method}</span>
+        <span class="name">${ep.name}</span>
+        <span class="path-hint">${ep.path.replace('/company/{id}','').replace('/locations/{id}','').replace('/companies/{id}','').substring(0,30)}</span>
+      `;
+      epDiv.onclick = () => selectEp(gi, ei, epDiv);
+      listEl.appendChild(epDiv);
+    });
+  });
+
+  document.getElementById('ep-count').textContent = `${totalCount} endpoints`;
+
+  // Auto-select first
+  const firstEp = container.querySelector('.ep');
+  if (firstEp) firstEp.click();
+}
+
+function toggleGroup(gi) {
+  if (collapsedGroups.has(gi)) collapsedGroups.delete(gi);
+  else collapsedGroups.add(gi);
+  const list = document.getElementById('ep-list-' + gi);
+  const toggle = list.previousElementSibling.querySelector('.ep-group-toggle');
+  list.classList.toggle('collapsed');
+  toggle.classList.toggle('collapsed');
+}
+
+function selectEp(gi, ei, el) {
+  document.querySelectorAll('.ep').forEach(e => e.classList.remove('active'));
+  el.classList.add('active');
+  const group = ENDPOINTS[gi];
+  const ep = group.items[ei];
+  selectedEp = ep;
+  selectedGroup = group;
+  currentParams = JSON.parse(JSON.stringify(ep.params || {}));
+  currentBody = ep.body ? JSON.parse(JSON.stringify(ep.body)) : null;
+  renderParams();
+  renderBody();
+}
+
+function filterEndpoints(query) {
+  const q = query.toLowerCase().trim();
+  document.querySelectorAll('.ep').forEach(el => {
+    const gi = +el.dataset.gi;
+    const ei = +el.dataset.ei;
+    const ep = ENDPOINTS[gi].items[ei];
+    const match = !q || ep.name.toLowerCase().includes(q) || ep.path.toLowerCase().includes(q) || ep.method.toLowerCase().includes(q);
+    el.classList.toggle('hidden', !match);
+  });
+}
+
+// ═══════════════════════════════════════════
+// PARAMS & BODY
+// ═══════════════════════════════════════════
+function renderParams() {
+  const container = document.getElementById('params-fields');
+  container.innerHTML = '';
+  const panel = document.getElementById('params-panel');
+  // Filter out pathReplace params from query display
+  const queryParams = {};
+  const pathReplaceKeys = selectedEp.pathReplace || [];
+  Object.entries(currentParams).forEach(([k,v]) => {
+    if (!pathReplaceKeys.includes(k)) queryParams[k] = v;
+    // Show pathReplace params too for user input, but label them differently
+  });
+  const allParams = currentParams;
+  if (Object.keys(allParams).length === 0) { panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+  Object.entries(allParams).forEach(([key, val]) => {
+    const isPath = pathReplaceKeys.includes(key);
+    const row = document.createElement('div');
+    row.className = 'param-row';
+    row.innerHTML = `<div class="param-key">${isPath ? '(path) ' : ''}${key}</div><input class="param-input" data-key="${key}" value="${val}">`;
+    container.appendChild(row);
+  });
+  container.querySelectorAll('.param-input').forEach(inp => {
+    inp.addEventListener('input', e => { currentParams[e.target.dataset.key] = e.target.value; });
+  });
+}
+
+function renderBody() {
+  const panel = document.getElementById('body-panel');
+  const editor = document.getElementById('body-editor');
+  const errEl = document.getElementById('body-error');
+  if (!currentBody || !['POST','PUT','PATCH'].includes(selectedEp.method)) {
+    panel.style.display = 'none';
+    return;
+  }
+  panel.style.display = 'block';
+  editor.value = JSON.stringify(currentBody, null, 2);
+  editor.classList.remove('json-error');
+  errEl.style.display = 'none';
+}
+
+function getBodyFromEditor() {
+  const editor = document.getElementById('body-editor');
+  const errEl = document.getElementById('body-error');
+  if (!editor.value.trim()) return null;
+  try {
+    const parsed = JSON.parse(editor.value);
+    editor.classList.remove('json-error');
+    errEl.style.display = 'none';
+    return parsed;
+  } catch (e) {
+    editor.classList.add('json-error');
+    errEl.textContent = 'JSON Error: ' + e.message;
+    errEl.style.display = 'block';
+    return false; // signal error
+  }
+}
+
+// ═══════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════
+function switchAuth(mode, btn) {
+  document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.auth-section').forEach(s => s.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('auth-' + mode).classList.add('active');
+}
+
+function getTokens() {
+  const isLogin = document.querySelector('.auth-tab.active').textContent.includes('логин');
+  const pt = isLogin ? document.getElementById('pt2').value.trim() : document.getElementById('pt').value.trim();
+  const ut = isLogin ? cachedUserToken : document.getElementById('ut').value.trim();
+  return { pt, ut };
+}
+
+function buildHeaders(pt, ut) {
+  let auth = `Bearer ${pt}`;
+  if (ut) auth += `, User ${ut}`;
+  return { 'Authorization': auth, 'Accept': 'application/vnd.api.v2+json', 'Content-Type': 'application/json' };
+}
+
+// ═══════════════════════════════════════════
+// BUILD URL
+// ═══════════════════════════════════════════
+function buildUrl() {
+  if (!selectedEp) return '';
+  const base = selectedGroup.version === 'v2' ? 'https://api.alteg.io/api/v2' : 'https://api.alteg.io/api/v1';
+  const id = document.getElementById('company-id').value.trim();
+  let path = selectedEp.path;
+
+  // Replace {id} with location/company id
+  path = path.replace('{id}', id);
+
+  // Replace path params
+  const pathReplaceKeys = selectedEp.pathReplace || [];
+  pathReplaceKeys.forEach(key => {
+    const val = currentParams[key] || '';
+    path = path.replace(`{${key}}`, val);
+  });
+
+  // Build query params (exclude pathReplace keys)
+  const queryEntries = Object.entries(currentParams).filter(([k,v]) => !pathReplaceKeys.includes(k) && v !== '');
+  const qp = queryEntries.map(([k,v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&');
+
+  return base + path + (qp ? '?' + qp : '');
+}
+
+// ═══════════════════════════════════════════
+// SEND REQUEST
+// ═══════════════════════════════════════════
+async function doAuth() {
+  const pt = document.getElementById('pt2').value.trim();
+  const login = document.getElementById('login-email').value.trim();
+  const pass = document.getElementById('login-pass').value.trim();
+  if (!pt || !login || !pass) { alert('Заполни все поля'); return; }
+  setStatus('loading', 'Авторизуюсь...', '');
+  document.getElementById('url-display').textContent = 'https://api.alteg.io/api/v1/auth';
+  try {
+    const res = await fetch('https://api.alteg.io/api/v1/auth', {
+      method: 'POST',
+      headers: buildHeaders(pt, ''),
+      body: JSON.stringify({ login, password: pass })
+    });
+    const data = await res.json();
+    updateOutput(data);
+    if (res.ok && data.data?.user_token) {
+      cachedUserToken = data.data.user_token;
+      document.getElementById('token-val').textContent = cachedUserToken;
+      document.getElementById('token-result').classList.add('visible');
+      if (data.data.company_id) document.getElementById('company-id').value = data.data.company_id;
+      setStatus('ok', 'User token получен!', res.status);
+    } else {
+      setStatus('err', data.meta?.message || 'Ошибка авторизации', res.status);
+    }
+  } catch(e) {
+    setStatus('err', 'CORS — используй curl', '');
+  }
+}
+
+async function sendRequest() {
+  if (!selectedEp) return;
+  const { pt, ut } = getTokens();
+  if (!pt) { setStatus('err', 'Нужен Partner Token', ''); return; }
+  const id = document.getElementById('company-id').value.trim();
+  if (!id && !selectedEp.noId) { setStatus('err', 'Введи Location ID', ''); return; }
+
+  // Get body
+  let body = null;
+  if (['POST','PUT','PATCH'].includes(selectedEp.method) && currentBody) {
+    body = getBodyFromEditor();
+    if (body === false) { setStatus('err', 'Невалидный JSON в body', ''); return; }
+  }
+
+  const url = buildUrl();
+  const headers = buildHeaders(pt, ut);
+
+  // Build curl
+  const hStr = Object.entries(headers).map(([k,v]) => `  -H '${k}: ${v}'`).join(' \\\n');
+  let curl = `curl -X ${selectedEp.method} \\\n  '${url}' \\\n${hStr}`;
+  if (body) curl += ` \\\n  -d '${JSON.stringify(body)}'`;
+  lastCurl = curl;
+
+  document.getElementById('url-display').textContent = url;
+  document.getElementById('json-curl').textContent = curl;
+  document.getElementById('send-btn').disabled = true;
+  document.getElementById('summary-cards').innerHTML = '';
+  document.getElementById('smeta').innerHTML = '';
+  setStatus('loading', 'Отправляю...', '');
+  document.getElementById('json-raw').textContent = '// загружаю...';
+
+  const t0 = performance.now();
+  try {
+    const opts = { method: selectedEp.method, headers };
+    if (body) opts.body = JSON.stringify(body);
+    const res = await fetch(url, opts);
+    const t1 = performance.now();
+    const text = await res.text();
+    const elapsed = Math.round(t1 - t0);
+    const sizeKB = (new Blob([text]).size / 1024).toFixed(1);
+
+    let data;
+    try { data = JSON.parse(text); } catch(e) { data = { raw: text }; }
+    const isOk = res.ok && data.success !== false;
+    setStatus(isOk ? 'ok' : 'err', isOk ? 'Успешно!' : (data.meta?.message || 'Ошибка'), res.status);
+    document.getElementById('smeta').innerHTML = `<span>${elapsed}ms</span><span>${sizeKB} KB</span>`;
+    updateOutput(data);
+    if (isOk) buildSummaryCards(data);
+  } catch(e) {
+    const t1 = performance.now();
+    setStatus('err', 'CORS — перейди во вкладку "curl"', '');
+    document.getElementById('smeta').innerHTML = `<span>${Math.round(t1-t0)}ms</span>`;
+    document.getElementById('json-raw').textContent = `// CORS заблокировал запрос из браузера\n// Перейди во вкладку "curl" и запусти команду в терминале`;
+  } finally {
+    document.getElementById('send-btn').disabled = false;
+  }
+}
+
+// ═══════════════════════════════════════════
+// OUTPUT
+// ═══════════════════════════════════════════
+function setStatus(state, text, code) {
+  document.getElementById('sdot').className = 'status-dot ' + state;
+  document.getElementById('stext').textContent = text;
+  const sc = document.getElementById('scode');
+  sc.textContent = code || '';
+  sc.className = 'status-code ' + state;
+}
+
+function updateOutput(data) {
+  const str = JSON.stringify(data, null, 2);
+  document.getElementById('json-raw').textContent = str;
+  document.getElementById('json-pretty').innerHTML = syntaxHighlight(str);
+}
+
+function buildSummaryCards(data) {
+  const c = document.getElementById('summary-cards');
+  c.innerHTML = '';
+  const cards = [];
+
+  if (Array.isArray(data.data)) {
+    cards.push({ label: 'В ответе', val: data.data.length, sub: 'объектов' });
+  }
+  if (data.meta?.total_count !== undefined) cards.push({ label: 'Всего', val: data.meta.total_count, sub: 'в базе' });
+  if (data.meta?.count !== undefined) cards.push({ label: 'На стр.', val: data.meta.count, sub: '' });
+
+  // analytics/overall
+  const d = data.data || {};
+  if (d.visits_count !== undefined) cards.push({ label: 'Визитов', val: d.visits_count, sub: 'за период' });
+  if (d.clients_count !== undefined) cards.push({ label: 'Клиентов', val: d.clients_count, sub: '' });
+  if (d.new_clients_count !== undefined) cards.push({ label: 'Новых', val: d.new_clients_count, sub: 'клиентов' });
+  if (d.income !== undefined) cards.push({ label: 'Выручка', val: Number(d.income).toLocaleString(), sub: '' });
+  if (d.average_bill !== undefined) cards.push({ label: 'Ср. чек', val: Number(d.average_bill).toLocaleString(), sub: '' });
+
+  // records sum
+  if (Array.isArray(data.data) && data.data.length > 0 && data.data[0]?.services !== undefined) {
+    const total = data.data.reduce((s, r) => s + (r.cost || 0), 0);
+    if (total > 0) cards.push({ label: 'Сумма', val: total.toLocaleString(), sub: '' });
+    const cancelled = data.data.filter(r => r.deleted).length;
+    if (cancelled > 0) cards.push({ label: 'Отменено', val: cancelled, sub: 'записей' });
+  }
+
+  // staff list
+  if (Array.isArray(data.data) && data.data.length > 0 && data.data[0]?.specialization !== undefined) {
+    cards.push({ label: 'Сотрудников', val: data.data.length, sub: '' });
+  }
+
+  cards.forEach(card => {
+    const el = document.createElement('div');
+    el.className = 'summary-card';
+    el.innerHTML = `<div class="sc-label">${card.label}</div><div class="sc-val">${card.val}</div><div class="sc-sub">${card.sub}</div>`;
+    c.appendChild(el);
+  });
+}
+
+function syntaxHighlight(json) {
+  return json.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, m => {
+      let cls = /^"/.test(m) ? (/:$/.test(m) ? 'json-key' : 'json-str') : /true|false/.test(m) ? 'json-bool' : /null/.test(m) ? 'json-null' : 'json-num';
+      return `<span class="${cls}">${m}</span>`;
+    });
+}
+
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+function copyCurl() {
+  if (!lastCurl) return;
+  navigator.clipboard.writeText(lastCurl).then(() => {
+    const btn = document.querySelector('.copy-btn');
+    btn.textContent = 'скопировано!';
+    setTimeout(() => btn.textContent = 'копировать curl', 2000);
+  });
+}
+
+// ═══════════════════════════════════════════
+// localStorage
+// ═══════════════════════════════════════════
+function saveTokens() {
+  const data = {
+    pt: document.getElementById('pt').value,
+    ut: document.getElementById('ut').value,
+    pt2: document.getElementById('pt2').value,
+    companyId: document.getElementById('company-id').value,
+  };
+  localStorage.setItem('altegio_tester', JSON.stringify(data));
+  setStatus('ok', 'Токены сохранены в localStorage', '');
+}
+
+function loadTokens() {
+  try {
+    const raw = localStorage.getItem('altegio_tester');
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    if (data.pt) document.getElementById('pt').value = data.pt;
+    if (data.ut) document.getElementById('ut').value = data.ut;
+    if (data.pt2) document.getElementById('pt2').value = data.pt2;
+    if (data.companyId) document.getElementById('company-id').value = data.companyId;
+  } catch(e) {}
+}
+
+function clearTokens() {
+  localStorage.removeItem('altegio_tester');
+  document.getElementById('pt').value = '';
+  document.getElementById('ut').value = '';
+  document.getElementById('pt2').value = '';
+  document.getElementById('company-id').value = '';
+  setStatus('ok', 'Токены очищены', '');
+}
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+loadTokens();
+renderEndpoints();
+</script>
+</body>
+</html>

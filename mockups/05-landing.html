@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Altegio AI — Аналитика и рост выручки для салонов</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;510;590;600;700;800&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Inter', -apple-system, system-ui, sans-serif;
+    font-feature-settings: 'cv01', 'ss03';
+    background: #08090a;
+    color: #f7f8f8;
+    line-height: 1.5;
+    overflow-x: hidden;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  /* Nav */
+  .nav {
+    position: sticky;
+    top: 0;
+    background: rgba(15,16,17,0.8);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    z-index: 100;
+  }
+
+  .nav-inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .brand-mark {
+    width: 30px;
+    height: 30px;
+    background: linear-gradient(135deg, #5e6ad2, #7170ff);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 13px;
+    color: white;
+  }
+
+  .brand-name {
+    font-size: 15px;
+    font-weight: 590;
+    color: #f7f8f8;
+    letter-spacing: -0.2px;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 28px;
+  }
+
+  .nav-links a {
+    color: #d0d6e0;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 510;
+    transition: color 0.15s;
+  }
+
+  .nav-links a:hover { color: #f7f8f8; }
+
+  .nav-cta {
+    background: #5e6ad2;
+    color: white;
+    padding: 8px 14px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 510;
+    transition: background 0.15s;
+  }
+
+  .nav-cta:hover { background: #7170ff; }
+
+  /* Hero */
+  .hero {
+    padding: 100px 0 80px;
+    text-align: center;
+    position: relative;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 1200px;
+    height: 600px;
+    background: radial-gradient(ellipse at center, rgba(94,106,210,0.15), transparent 60%);
+    z-index: -1;
+  }
+
+  .badge {
+    display: inline-block;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: #d0d6e0;
+    padding: 6px 14px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 510;
+    margin-bottom: 28px;
+  }
+
+  .badge b { color: #7170ff; font-weight: 590; }
+
+  .hero h1 {
+    font-size: 72px;
+    font-weight: 510;
+    letter-spacing: -1.584px;
+    line-height: 1;
+    color: #f7f8f8;
+    margin-bottom: 24px;
+  }
+
+  .hero h1 em {
+    font-style: normal;
+    background: linear-gradient(135deg, #5e6ad2, #7170ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero .sub {
+    font-size: 20px;
+    color: #8a8f98;
+    max-width: 640px;
+    margin: 0 auto 40px;
+    line-height: 1.5;
+    font-weight: 400;
+    letter-spacing: -0.2px;
+  }
+
+  .hero .sub b { color: #d0d6e0; font-weight: 510; }
+
+  .cta-row {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+
+  .btn-primary {
+    background: #5e6ad2;
+    color: white;
+    padding: 12px 22px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 510;
+    transition: all 0.15s;
+    border: 1px solid #5e6ad2;
+  }
+
+  .btn-primary:hover { background: #7170ff; border-color: #7170ff; }
+
+  .btn-ghost {
+    background: rgba(255,255,255,0.02);
+    color: #f7f8f8;
+    padding: 12px 22px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 510;
+    transition: all 0.15s;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .btn-ghost:hover { background: rgba(255,255,255,0.05); }
+
+  .cta-meta {
+    color: #62666d;
+    font-size: 13px;
+    margin-top: 4px;
+  }
+
+  /* Hero preview */
+  .hero-preview {
+    margin-top: 64px;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+  }
+
+  .phone-frame {
+    width: 280px;
+    height: 560px;
+    background: #000;
+    border-radius: 42px;
+    padding: 8px;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.5), 0 10px 30px rgba(94,106,210,0.15);
+    position: relative;
+  }
+
+  .phone-frame::before {
+    content: '';
+    position: absolute;
+    top: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90px;
+    height: 24px;
+    background: #000;
+    border-radius: 14px;
+    z-index: 20;
+  }
+
+  .phone-screen {
+    width: 100%;
+    height: 100%;
+    background: #0E1621;
+    border-radius: 34px;
+    overflow: hidden;
+    position: relative;
+    padding: 40px 12px 12px;
+  }
+
+  .mini-msg {
+    background: #182533;
+    color: #fff;
+    padding: 10px 12px;
+    border-radius: 10px 10px 10px 2px;
+    font-size: 10px;
+    line-height: 1.5;
+    font-weight: 400;
+  }
+
+  .mini-msg b { font-weight: 600; }
+  .mini-msg .dim { color: #8a8f98; }
+  .mini-msg .green { color: #4ade80; }
+  .mini-msg .red { color: #f87171; }
+
+  /* Stats band */
+  .stats-band {
+    background: rgba(255,255,255,0.02);
+    border-top: 1px solid rgba(255,255,255,0.05);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    padding: 40px 0;
+  }
+
+  .stats-band .inner {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  .stat {
+    text-align: center;
+  }
+
+  .stat .val {
+    font-size: 42px;
+    font-weight: 510;
+    color: #f7f8f8;
+    letter-spacing: -1px;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .stat .lbl {
+    font-size: 13px;
+    color: #8a8f98;
+    margin-top: 8px;
+    font-weight: 510;
+  }
+
+  /* Features */
+  .section {
+    padding: 100px 0;
+  }
+
+  .section-head {
+    text-align: center;
+    max-width: 700px;
+    margin: 0 auto 60px;
+  }
+
+  .section-head .eyebrow {
+    font-size: 12px;
+    letter-spacing: 3px;
+    color: #7170ff;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 16px;
+  }
+
+  .section-head h2 {
+    font-size: 48px;
+    font-weight: 510;
+    letter-spacing: -1.056px;
+    line-height: 1.05;
+    color: #f7f8f8;
+    margin-bottom: 16px;
+  }
+
+  .section-head p {
+    font-size: 18px;
+    color: #8a8f98;
+    line-height: 1.55;
+    letter-spacing: -0.165px;
+  }
+
+  .feature-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  .feature {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 32px;
+    transition: all 0.2s;
+  }
+
+  .feature:hover {
+    background: rgba(255,255,255,0.04);
+    border-color: rgba(255,255,255,0.12);
+  }
+
+  .feature .icon {
+    width: 44px;
+    height: 44px;
+    background: linear-gradient(135deg, rgba(94,106,210,0.2), rgba(113,112,255,0.1));
+    border: 1px solid rgba(113,112,255,0.25);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    margin-bottom: 20px;
+  }
+
+  .feature h3 {
+    font-size: 20px;
+    font-weight: 590;
+    color: #f7f8f8;
+    letter-spacing: -0.24px;
+    margin-bottom: 10px;
+  }
+
+  .feature p {
+    color: #8a8f98;
+    font-size: 15px;
+    line-height: 1.6;
+    letter-spacing: -0.165px;
+  }
+
+  /* How it works */
+  .how {
+    background: linear-gradient(180deg, transparent, rgba(94,106,210,0.03), transparent);
+  }
+
+  .how-steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+
+  .step {
+    position: relative;
+  }
+
+  .step .num {
+    font-size: 14px;
+    font-weight: 590;
+    color: #7170ff;
+    margin-bottom: 12px;
+    letter-spacing: 2px;
+    font-family: ui-monospace, 'SF Mono', monospace;
+  }
+
+  .step h3 {
+    font-size: 20px;
+    font-weight: 590;
+    color: #f7f8f8;
+    margin-bottom: 10px;
+    letter-spacing: -0.24px;
+  }
+
+  .step p {
+    color: #8a8f98;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  /* Pricing */
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .price-card {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 32px;
+    position: relative;
+  }
+
+  .price-card.featured {
+    background: linear-gradient(135deg, rgba(94,106,210,0.1), rgba(113,112,255,0.04));
+    border-color: rgba(113,112,255,0.3);
+  }
+
+  .featured-badge {
+    position: absolute;
+    top: -10px;
+    right: 20px;
+    background: #5e6ad2;
+    color: white;
+    padding: 3px 10px;
+    border-radius: 9999px;
+    font-size: 11px;
+    font-weight: 590;
+    letter-spacing: 0.5px;
+  }
+
+  .price-card h3 {
+    font-size: 14px;
+    letter-spacing: 1px;
+    color: #8a8f98;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+
+  .price-card .price {
+    font-size: 56px;
+    font-weight: 510;
+    color: #f7f8f8;
+    letter-spacing: -1.4px;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    margin-bottom: 4px;
+  }
+
+  .price-card .price small {
+    font-size: 16px;
+    color: #8a8f98;
+    font-weight: 400;
+  }
+
+  .price-card .desc {
+    color: #8a8f98;
+    font-size: 14px;
+    margin-bottom: 24px;
+    line-height: 1.5;
+  }
+
+  .price-list {
+    list-style: none;
+    margin-bottom: 28px;
+  }
+
+  .price-list li {
+    padding: 8px 0;
+    color: #d0d6e0;
+    font-size: 14px;
+    display: flex;
+    align-items: start;
+    gap: 10px;
+  }
+
+  .price-list li::before {
+    content: '✓';
+    color: #10b981;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .price-card .btn-primary,
+  .price-card .btn-ghost {
+    width: 100%;
+    text-align: center;
+    display: block;
+  }
+
+  /* FAQ */
+  .faq-item {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 10px;
+  }
+
+  .faq-item h3 {
+    font-size: 16px;
+    font-weight: 590;
+    color: #f7f8f8;
+    margin-bottom: 8px;
+    letter-spacing: -0.2px;
+  }
+
+  .faq-item p {
+    color: #8a8f98;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* Final CTA */
+  .final-cta {
+    background: linear-gradient(135deg, rgba(94,106,210,0.15), rgba(113,112,255,0.05));
+    border: 1px solid rgba(113,112,255,0.25);
+    border-radius: 24px;
+    padding: 64px 48px;
+    text-align: center;
+    margin-bottom: 80px;
+  }
+
+  .final-cta h2 {
+    font-size: 40px;
+    font-weight: 510;
+    letter-spacing: -0.88px;
+    line-height: 1.1;
+    color: #f7f8f8;
+    margin-bottom: 16px;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .final-cta p {
+    color: #8a8f98;
+    font-size: 17px;
+    margin-bottom: 32px;
+    max-width: 540px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.5;
+  }
+
+  /* Footer */
+  footer {
+    padding: 40px 0;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    color: #62666d;
+    font-size: 13px;
+  }
+
+  footer .inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+
+  footer a { color: #8a8f98; text-decoration: none; margin-left: 20px; }
+  footer a:hover { color: #d0d6e0; }
+
+  @media (max-width: 900px) {
+    .hero h1 { font-size: 48px; letter-spacing: -1px; }
+    .hero .sub { font-size: 17px; }
+    .section-head h2 { font-size: 36px; }
+    .feature-grid, .how-steps, .pricing-grid { grid-template-columns: 1fr; }
+    .stats-band .inner { grid-template-columns: repeat(2, 1fr); }
+    .hero-preview { flex-direction: column; align-items: center; }
+    .final-cta { padding: 48px 24px; }
+    .final-cta h2 { font-size: 28px; }
+    .nav-links { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav class="nav">
+  <div class="nav-inner">
+    <div class="brand">
+      <div class="brand-mark">AI</div>
+      <div class="brand-name">Altegio AI</div>
+    </div>
+    <div class="nav-links">
+      <a href="#features">Возможности</a>
+      <a href="#how">Как работает</a>
+      <a href="#pricing">Цена</a>
+      <a href="#faq">Вопросы</a>
+    </div>
+    <a href="#cta" class="nav-cta">Войти в пилот →</a>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="container">
+    <div class="badge">🚀 Пилот для первых <b>10 салонов</b> — бесплатно 2 месяца</div>
+    <h1>Ваш Altegio<br>теперь <em>умный</em>.</h1>
+    <p class="sub">Telegram-бот и дашборд которые показывают <b>где вы теряете деньги</b>, кто из мастеров тянет бизнес вниз, и что делать — прямо по вашим данным из Altegio.</p>
+
+    <div class="cta-row">
+      <a href="#cta" class="btn-primary">Получить отчёт по моему салону →</a>
+      <a href="#features" class="btn-ghost">Посмотреть как работает</a>
+    </div>
+    <div class="cta-meta">Подключение за 5 минут · ничего не нужно устанавливать</div>
+
+    <!-- Hero preview phones -->
+    <div class="hero-preview">
+      <div class="phone-frame">
+        <div class="phone-screen">
+          <div class="mini-msg">
+            <b>📊 Салон №1, Алматы</b>
+            <span class="dim">· утро</span><br><br>
+            Вчера: <b>3.2M ₸</b> <span class="green">+14%</span><br>
+            Визитов 84 · ср.чек 33 844<br><br>
+            🏆 Топ: Айгерим — 412K<br>
+            <span class="red">⚠ Айжан — 50% отмен</span><br><br>
+            📅 Сегодня: 108 записей<br>
+            Слотов пусто: 31<br><br>
+            <span class="dim">[Дашборд] [Мастера]</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Stats -->
+<div class="stats-band">
+  <div class="inner">
+    <div class="stat">
+      <div class="val">44.7M ₸</div>
+      <div class="lbl">Средние скрытые потери в год</div>
+    </div>
+    <div class="stat">
+      <div class="val">5 мин</div>
+      <div class="lbl">На подключение Altegio</div>
+    </div>
+    <div class="stat">
+      <div class="val">9:00</div>
+      <div class="lbl">Отчёт приходит в Telegram</div>
+    </div>
+    <div class="stat">
+      <div class="val">10+</div>
+      <div class="lbl">Метрик по каждому мастеру</div>
+    </div>
+  </div>
+</div>
+
+<!-- Features -->
+<section class="section" id="features">
+  <div class="container">
+    <div class="section-head">
+      <div class="eyebrow">Возможности</div>
+      <h2>Четыре инструмента, одна подписка</h2>
+      <p>Всё работает на ваших данных из Altegio. Без миграций, без новых систем, без обучения персонала.</p>
+    </div>
+
+    <div class="feature-grid">
+
+      <div class="feature">
+        <div class="icon">📲</div>
+        <h3>Утренний отчёт в Telegram</h3>
+        <p>Каждый день в 9:00 получаете сводку: выручка вчера, топ-мастера, проблемы, план на сегодня. Без входа в систему, без дашбордов.</p>
+      </div>
+
+      <div class="feature">
+        <div class="icon">👥</div>
+        <h3>Дашборд мастеров в Mini App</h3>
+        <p>Рейтинг всех мастеров по 10+ метрикам: выручка, ср.чек, загрузка, % отмен, возвратность, выручка/час. Видно кто работает, а кто нет.</p>
+      </div>
+
+      <div class="feature">
+        <div class="icon">💸</div>
+        <h3>Отчёт "где теряете деньги"</h3>
+        <p>Раз в неделю — разбор потерь в тенге: на отменах, на простое, на ушедших клиентах. С конкретными рекомендациями что делать.</p>
+      </div>
+
+      <div class="feature">
+        <div class="icon">⚡</div>
+        <h3>Алерты в реальном времени</h3>
+        <p>Крупная отмена, мастер не вышел на смену, день идёт хуже среднего — всё приходит в Telegram сразу. Не нужно ничего проверять.</p>
+      </div>
+
+      <div class="feature">
+        <div class="icon">🧠</div>
+        <h3>AI-советы на ваших данных</h3>
+        <p>Клиенты в зоне риска. Кого нагружать. Какие часы не работают. Какие услуги падают. Всё с цифрами и обоснованием.</p>
+      </div>
+
+      <div class="feature">
+        <div class="icon">📈</div>
+        <h3>Сравнения и тренды</h3>
+        <p>Вчера vs прошлая неделя. Этот месяц vs год назад. Мастер А vs мастер Б. Сезонность, пики, провалы — всё на одном экране.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- How it works -->
+<section class="section how" id="how">
+  <div class="container">
+    <div class="section-head">
+      <div class="eyebrow">Как подключить</div>
+      <h2>5 минут и первый отчёт ваш</h2>
+      <p>Ничего устанавливать не нужно. Всё работает через Telegram.</p>
+    </div>
+
+    <div class="how-steps">
+      <div class="step">
+        <div class="num">01 / ШАГ</div>
+        <h3>Запускаете бота</h3>
+        <p>Переходите в @altegio_ai_bot в Telegram, жмёте Start. Бот открывается в любом мессенджере.</p>
+      </div>
+      <div class="step">
+        <div class="num">02 / ШАГ</div>
+        <h3>Даёте токены Altegio</h3>
+        <p>Два токена из настроек Altegio — это read-only доступ, ничего не меняем. Взять их — 2 минуты.</p>
+      </div>
+      <div class="step">
+        <div class="num">03 / ШАГ</div>
+        <h3>Получаете первый отчёт</h3>
+        <p>Подтягиваем ваши данные за 6 месяцев. Утром 9:00 приходит первый отчёт. Дашборд открывается в один тап.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Pricing -->
+<section class="section" id="pricing">
+  <div class="container">
+    <div class="section-head">
+      <div class="eyebrow">Цена</div>
+      <h2>Простая подписка</h2>
+      <p>Платите только за активные локации. Можно отключить в любой момент.</p>
+    </div>
+
+    <div class="pricing-grid">
+
+      <div class="price-card featured">
+        <div class="featured-badge">ПИЛОТ</div>
+        <h3>Бесплатно</h3>
+        <div class="price">0 ₸<small> / 2 месяца</small></div>
+        <p class="desc">Для первых 10 салонов. Полный функционал, без ограничений. Взамен — 30 минут фидбека в конце.</p>
+        <ul class="price-list">
+          <li>Утренние отчёты в Telegram</li>
+          <li>Дашборд мастеров (Mini App)</li>
+          <li>Еженедельный отчёт "где теряете"</li>
+          <li>Алерты в реальном времени</li>
+          <li>AI-советы на ваших данных</li>
+          <li>Персональный онбординг за 15 мин</li>
+        </ul>
+        <a href="#cta" class="btn-primary">Войти в пилот →</a>
+      </div>
+
+      <div class="price-card">
+        <h3>После пилота</h3>
+        <div class="price">10 000 ₸<small> / мес / точка</small></div>
+        <p class="desc">Продолжите если понравится. Нет — расходимся без вопросов. Скидка для сетей от 3 точек.</p>
+        <ul class="price-list">
+          <li>Всё что в пилоте</li>
+          <li>Белый список функций в разработке</li>
+          <li>Приоритетная поддержка</li>
+          <li>Экспорт отчётов PDF / Excel</li>
+          <li>Для сетей: сравнение локаций</li>
+          <li>Отменить можно за 1 клик</li>
+        </ul>
+        <a href="#cta" class="btn-ghost">Подробнее</a>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="section" id="faq">
+  <div class="container">
+    <div class="section-head">
+      <div class="eyebrow">Вопросы</div>
+      <h2>Короткие ответы</h2>
+    </div>
+
+    <div style="max-width: 800px; margin: 0 auto;">
+      <div class="faq-item">
+        <h3>Зачем это если есть Altegio?</h3>
+        <p>Altegio показывает <b style="color:#d0d6e0">что было</b>. Мы показываем <b style="color:#d0d6e0">что делать</b>: кого нагружать, кого терять, где теряются деньги, какие клиенты уйдут. Плюс всё приходит в Telegram — без входа в Altegio каждое утро.</p>
+      </div>
+      <div class="faq-item">
+        <h3>Безопасно ли давать токены?</h3>
+        <p>Токен — только read-only доступ. Мы ничего не меняем в вашем Altegio, не трогаем клиентов, не шлём им ничего от вашего имени. Отозвать токен — 1 клик в Altegio.</p>
+      </div>
+      <div class="faq-item">
+        <h3>Где хранятся данные?</h3>
+        <p>На серверах в Казахстане. Не передаём третьим лицам, не используем для обучения моделей. Можем подписать NDA если нужно.</p>
+      </div>
+      <div class="faq-item">
+        <h3>А мастера увидят свои метрики?</h3>
+        <p>Нет. Дашборд только для руководства. Мастера видят только то что и так видят в Altegio — свои записи и заработок.</p>
+      </div>
+      <div class="faq-item">
+        <h3>Сколько сейчас клиентов у вас?</h3>
+        <p>Честно: запускаемся прямо сейчас, вы в первой волне. Поэтому пилот бесплатный — проверяем гипотезу на живых клиентах и собираем фидбек.</p>
+      </div>
+      <div class="faq-item">
+        <h3>Сеть из 5 точек — будет работать?</h3>
+        <p>Да, поддержка сетей с первого дня. Каждая точка считается отдельно, есть агрегированный отчёт по всей сети. Для сетей от 3 точек — скидка.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Final CTA -->
+<section class="section" id="cta">
+  <div class="container">
+    <div class="final-cta">
+      <h2>Первые 10 салонов получают всё бесплатно</h2>
+      <p>15 минут созвона — подключаемся, тянем ваши данные, делаем персональный отчёт. Если нравится — остаётесь в пилоте. Нет — расходимся.</p>
+      <div class="cta-row">
+        <a href="https://t.me/altegio_ai_bot" class="btn-primary">Открыть @altegio_ai_bot →</a>
+        <a href="#" class="btn-ghost">Написать на WhatsApp</a>
+      </div>
+      <div class="cta-meta" style="margin-top: 16px;">Отвечаем в течение часа · с 9:00 до 22:00</div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="container">
+    <div class="inner">
+      <div class="brand">
+        <div class="brand-mark">AI</div>
+        <div class="brand-name">Altegio AI</div>
+      </div>
+      <div>
+        © 2026 Altegio AI ·
+        <a href="#">Политика</a>
+        <a href="#">Контакты</a>
+        <a href="#">Telegram</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

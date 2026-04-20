@@ -1,0 +1,19 @@
+{
+  "name": "altegio-ai",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@9.12.0",
+  "engines": { "node": ">=20.10.0" },
+  "scripts": {
+    "dev": "docker compose -f docker/docker-compose.yml up -d && pnpm -F @altegio/api start:dev",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "lint": "eslint .",
+    "cli": "pnpm -F @altegio/cli start --"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "eslint": "^9.0.0",
+    "typescript": "^5.4.0"
+  }
+}

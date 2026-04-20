@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Altegio AI — Мокапы для рассылки</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;510;590;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, system-ui, sans-serif;
+    font-feature-settings: 'cv01', 'ss03';
+    background: #08090a;
+    color: #f7f8f8;
+    padding: 48px 24px;
+    min-height: 100vh;
+  }
+
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .head {
+    margin-bottom: 48px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .brand-mark {
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, #5e6ad2, #7170ff);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    color: white;
+  }
+
+  .brand-name {
+    font-size: 20px;
+    font-weight: 590;
+    letter-spacing: -0.3px;
+  }
+
+  h1 {
+    font-size: 42px;
+    font-weight: 510;
+    letter-spacing: -1px;
+    line-height: 1.1;
+    margin-bottom: 12px;
+  }
+
+  .sub {
+    color: #8a8f98;
+    font-size: 17px;
+    line-height: 1.55;
+    max-width: 640px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+
+  .card {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 28px;
+    transition: all 0.2s;
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card:hover {
+    background: rgba(255,255,255,0.04);
+    border-color: rgba(113,112,255,0.3);
+    transform: translateY(-2px);
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: 16px;
+    padding: 1px;
+    background: linear-gradient(135deg, transparent, rgba(113,112,255,0.2));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .card:hover::before { opacity: 1; }
+
+  .card-num {
+    font-family: ui-monospace, 'SF Mono', monospace;
+    font-size: 13px;
+    color: #7170ff;
+    font-weight: 510;
+    letter-spacing: 2px;
+    margin-bottom: 12px;
+  }
+
+  .card h2 {
+    font-size: 22px;
+    font-weight: 590;
+    letter-spacing: -0.3px;
+    color: #f7f8f8;
+    margin-bottom: 8px;
+    line-height: 1.25;
+  }
+
+  .card p {
+    color: #8a8f98;
+    font-size: 14px;
+    line-height: 1.55;
+    margin-bottom: 20px;
+  }
+
+  .card-meta {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+
+  .chip {
+    font-size: 11px;
+    color: #d0d6e0;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.06);
+    padding: 3px 10px;
+    border-radius: 9999px;
+    font-weight: 510;
+  }
+
+  .card-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #7170ff;
+    font-size: 14px;
+    font-weight: 510;
+  }
+
+  /* Instructions section */
+  .instructions {
+    margin-top: 64px;
+    padding: 32px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+  }
+
+  .instructions h3 {
+    font-size: 20px;
+    font-weight: 590;
+    margin-bottom: 16px;
+    color: #f7f8f8;
+    letter-spacing: -0.2px;
+  }
+
+  .instructions ol {
+    padding-left: 20px;
+    color: #d0d6e0;
+  }
+
+  .instructions li {
+    margin-bottom: 10px;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .instructions code {
+    background: rgba(255,255,255,0.05);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: ui-monospace, 'SF Mono', monospace;
+    font-size: 12px;
+    color: #d0d6e0;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .instructions .cmd {
+    background: #0f1011;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-family: ui-monospace, 'SF Mono', monospace;
+    font-size: 13px;
+    color: #d0d6e0;
+    margin: 8px 0;
+    overflow-x: auto;
+  }
+
+  .instructions .cmd .prompt { color: #7170ff; }
+
+  @media (max-width: 768px) {
+    .grid { grid-template-columns: 1fr; }
+    h1 { font-size: 32px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <div class="head">
+    <div class="brand">
+      <div class="brand-mark">AI</div>
+      <div class="brand-name">Altegio AI</div>
+    </div>
+    <h1>Мокапы для рассылки салонам</h1>
+    <p class="sub">Пять материалов для customer development: скриншоты продукта, PDF-отчёт для звонков и лендинг. Данные — реальные цифры салона-партнёра в Алматы (анонимизировано), имена мастеров синтетические.</p>
+  </div>
+
+  <div class="grid">
+
+    <a class="card" href="01-telegram-morning.html" target="_blank">
+      <div class="card-num">01 / MOCKUP</div>
+      <h2>📲 Утренний отчёт в Telegram</h2>
+      <p>iPhone-мокап бота с отчётом за вчера, топом мастеров, алертами и планом на сегодня. Первое что видит владелец.</p>
+      <div class="card-meta">
+        <span class="chip">Telegram</span>
+        <span class="chip">Mobile</span>
+        <span class="chip">Для холодной рассылки</span>
+      </div>
+      <div class="card-cta">Открыть →</div>
+    </a>
+
+    <a class="card" href="02-dashboard-tma.html" target="_blank">
+      <div class="card-num">02 / MOCKUP</div>
+      <h2>👥 Дашборд мастеров (Mini App)</h2>
+      <p>Telegram Mini App с рейтингом мастеров, KPI-картами, алертами и mini-графиками. Открывается в один тап из бота.</p>
+      <div class="card-meta">
+        <span class="chip">Mini App</span>
+        <span class="chip">Mobile</span>
+        <span class="chip">Главная фича</span>
+      </div>
+      <div class="card-cta">Открыть →</div>
+    </a>
+
+    <a class="card" href="03-losses-report.html" target="_blank">
+      <div class="card-num">03 / MOCKUP</div>
+      <h2>💸 Отчёт "Где теряете деньги"</h2>
+      <p>Wow-отчёт с цифрой 44.7M ₸ потерь, разбор источников, проблемные мастера, 3 рекомендации с суммами.</p>
+      <div class="card-meta">
+        <span class="chip">Web</span>
+        <span class="chip">Wow-эффект</span>
+        <span class="chip">Для шока на звонке</span>
+      </div>
+      <div class="card-cta">Открыть →</div>
+    </a>
+
+    <a class="card" href="04-demo-report.html" target="_blank">
+      <div class="card-num">04 / DOCUMENT</div>
+      <h2>📄 Демо-отчёт PDF (3 страницы)</h2>
+      <p>Многостраничный документ: обложка, метрики и мастера, потери и рекомендации. Экспортируется в PDF через Cmd+P.</p>
+      <div class="card-meta">
+        <span class="chip">A4</span>
+        <span class="chip">Печать</span>
+        <span class="chip">Для презентаций</span>
+      </div>
+      <div class="card-cta">Открыть →</div>
+    </a>
+
+    <a class="card" href="05-landing.html" target="_blank">
+      <div class="card-num">05 / LANDING</div>
+      <h2>🌐 Одностраничник / Landing</h2>
+      <p>Hero + фичи + как работает + цены + FAQ + CTA. Ссылка "подробнее" в рассылке. Можно залить на Vercel за 5 мин.</p>
+      <div class="card-meta">
+        <span class="chip">Web</span>
+        <span class="chip">Маркетинг</span>
+        <span class="chip">Конверсия</span>
+      </div>
+      <div class="card-cta">Открыть →</div>
+    </a>
+
+    <div class="card" style="opacity: 0.5; cursor: default;">
+      <div class="card-num">SOON</div>
+      <h2>📸 Экспорт в PNG/PDF</h2>
+      <p>После Phase 0 добавим скрипт на Puppeteer который рендерит все мокапы в PNG + PDF для отправки в мессенджерах.</p>
+      <div class="card-meta">
+        <span class="chip">Автоматизация</span>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="instructions">
+    <h3>Как использовать</h3>
+    <ol>
+      <li>Открыть каждый мокап в Chrome / Safari, сделать скриншоты (Cmd+Shift+4 для области или полноэкранный).</li>
+      <li>Мокапы 01-02 — iPhone frame уже встроен, скриншот делать область с телефоном.</li>
+      <li>Мокап 03 (losses) — скриншотить целиком, это wow-материал для поста/звонка.</li>
+      <li>Мокап 04 (PDF) — открыть в Chrome, <code>Cmd+P</code> → <code>Сохранить как PDF</code> → получится 3-страничный документ.</li>
+      <li>Мокап 05 (лендинг) — залить на Vercel: <code>cd mockups && vercel</code>. Ссылку в рассылку.</li>
+    </ol>
+    <h3 style="margin-top: 24px;">Превью локально</h3>
+    <div class="cmd"><span class="prompt">$</span> cd /Users/saiduly/Developer/altegio-ai/mockups</div>
+    <div class="cmd"><span class="prompt">$</span> python3 -m http.server 8080</div>
+    <div class="cmd"><span class="prompt">$</span> open http://localhost:8080</div>
+  </div>
+
+</div>
+
+</body>
+</html>

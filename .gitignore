@@ -1,0 +1,12 @@
+node_modules
+dist
+build
+.env
+.env.local
+*.log
+coverage
+.DS_Store
+.vercel
+.turbo
+.nyc_output
+demo-site          # nested independent repo, not tracked here

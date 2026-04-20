@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Altegio AI — Демо-отчёт (анонимизировано)</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;510;590;600;700;800&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --ink: #0a0a0f;
+    --ink-2: #2a2a35;
+    --muted: #6b7280;
+    --sub: #9ca3af;
+    --line: #e5e7eb;
+    --bg: #f7f8f8;
+    --accent: #5e6ad2;
+    --accent-light: #eef0fe;
+    --red: #dc2626;
+    --red-light: #fef2f2;
+    --green: #059669;
+    --green-light: #ecfdf5;
+    --orange: #ea580c;
+    --orange-light: #fff7ed;
+  }
+
+  @page { size: A4; margin: 0; }
+
+  body {
+    font-family: 'Inter', -apple-system, system-ui, sans-serif;
+    font-feature-settings: 'cv01', 'ss03';
+    background: #e5e7eb;
+    color: var(--ink);
+    padding: 40px 20px;
+  }
+
+  .page {
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0 auto 24px;
+    background: white;
+    padding: 24mm 20mm;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.12);
+    position: relative;
+    page-break-after: always;
+  }
+
+  .page:last-of-type { page-break-after: auto; }
+
+  @media print {
+    body { padding: 0; background: white; }
+    .page { box-shadow: none; margin: 0; }
+  }
+
+  /* Header & brand */
+  .hdr {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 28px;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .brand-mark {
+    width: 28px;
+    height: 28px;
+    background: linear-gradient(135deg, #5e6ad2, #7170ff);
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 12px;
+    color: white;
+  }
+
+  .brand-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  .hdr .meta {
+    text-align: right;
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .page-n {
+    position: absolute;
+    bottom: 12mm;
+    right: 20mm;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  /* === PAGE 1: Cover === */
+  .cover {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: calc(297mm - 48mm);
+  }
+
+  .cover .top { flex: 1; display: flex; flex-direction: column; justify-content: center; padding-top: 20mm; }
+
+  .cover .eyebrow {
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--accent);
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 20px;
+  }
+
+  .cover h1 {
+    font-size: 48px;
+    font-weight: 510;
+    letter-spacing: -1.2px;
+    line-height: 1.05;
+    color: var(--ink);
+    margin-bottom: 16px;
+  }
+
+  .cover .subtitle {
+    font-size: 18px;
+    color: var(--muted);
+    line-height: 1.5;
+    max-width: 450px;
+  }
+
+  .cover-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin: 40px 0 32px;
+  }
+
+  .cover-stat {
+    background: var(--bg);
+    padding: 18px;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+  }
+
+  .cover-stat .val {
+    font-size: 24px;
+    font-weight: 590;
+    color: var(--ink);
+    letter-spacing: -0.5px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .cover-stat .lbl {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 4px;
+    font-weight: 510;
+  }
+
+  .cover-key {
+    background: linear-gradient(135deg, #fef2f2, #fff7ed);
+    border-left: 4px solid var(--red);
+    padding: 20px 24px;
+    border-radius: 0 10px 10px 0;
+    margin-top: 24px;
+  }
+
+  .cover-key .lbl {
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--red);
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .cover-key .big {
+    font-size: 38px;
+    font-weight: 510;
+    color: var(--red);
+    letter-spacing: -1px;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .cover-key .desc {
+    font-size: 13px;
+    color: #7f1d1d;
+    margin-top: 8px;
+    line-height: 1.5;
+  }
+
+  .cover .footer-info {
+    font-size: 11px;
+    color: var(--muted);
+    border-top: 1px solid var(--line);
+    padding-top: 16px;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  /* === PAGE 2: Metrics === */
+  .page-title {
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+
+  .page-h {
+    font-size: 28px;
+    font-weight: 510;
+    color: var(--ink);
+    letter-spacing: -0.7px;
+    line-height: 1.15;
+    margin-bottom: 20px;
+  }
+
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+
+  .kpi {
+    background: white;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+
+  .kpi .lbl {
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 510;
+    margin-bottom: 6px;
+  }
+
+  .kpi .val {
+    font-size: 20px;
+    font-weight: 590;
+    color: var(--ink);
+    letter-spacing: -0.4px;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+
+  .kpi .delta {
+    font-size: 11px;
+    margin-top: 6px;
+    font-weight: 510;
+  }
+
+  .delta.up { color: var(--green); }
+  .delta.down { color: var(--red); }
+
+  .section-h {
+    font-size: 16px;
+    font-weight: 590;
+    color: var(--ink);
+    margin: 24px 0 12px;
+    letter-spacing: -0.2px;
+  }
+
+  /* Masters table */
+  .mtable {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+
+  .mtable .row {
+    display: grid;
+    grid-template-columns: 30px 2fr 1fr 0.8fr 0.8fr 0.8fr;
+    gap: 8px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--line);
+    align-items: center;
+    font-size: 12px;
+  }
+
+  .mtable .row:last-child { border-bottom: none; }
+
+  .mtable .row.head {
+    background: var(--bg);
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+  }
+
+  .mtable .rank { color: var(--muted); font-weight: 510; text-align: center; }
+  .mtable .mname { color: var(--ink); font-weight: 510; }
+  .mtable .val { font-variant-numeric: tabular-nums; color: var(--ink); text-align: right; font-weight: 510; }
+  .mtable .pct-red { color: var(--red); font-weight: 510; font-variant-numeric: tabular-nums; text-align: right; }
+  .mtable .pct-green { color: var(--green); font-weight: 510; font-variant-numeric: tabular-nums; text-align: right; }
+  .mtable .pct-flat { color: var(--muted); font-weight: 510; font-variant-numeric: tabular-nums; text-align: right; }
+
+  /* Split cards */
+  .split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .split-card {
+    background: white;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px;
+  }
+
+  .split-card .h {
+    font-size: 13px;
+    font-weight: 590;
+    color: var(--ink);
+    margin-bottom: 10px;
+  }
+
+  .bar-row {
+    display: grid;
+    grid-template-columns: 90px 1fr 40px;
+    gap: 8px;
+    align-items: center;
+    font-size: 11px;
+    padding: 4px 0;
+  }
+
+  .bar-row .lbl { color: var(--muted); }
+
+  .bar {
+    height: 8px;
+    background: var(--bg);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), #7170ff);
+    border-radius: 4px;
+  }
+
+  .bar-row .v { text-align: right; color: var(--ink); font-weight: 510; font-variant-numeric: tabular-nums; }
+
+  /* === PAGE 3: Recommendations === */
+  .loss-summary {
+    background: linear-gradient(135deg, var(--red-light), var(--orange-light));
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 28px;
+    border-left: 4px solid var(--red);
+  }
+
+  .loss-summary .h {
+    font-size: 12px;
+    letter-spacing: 2px;
+    color: var(--red);
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+
+  .loss-summary .big {
+    font-size: 44px;
+    font-weight: 510;
+    color: var(--red);
+    letter-spacing: -1.2px;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .loss-summary .desc {
+    font-size: 13px;
+    color: #7f1d1d;
+    margin-top: 10px;
+    line-height: 1.5;
+    max-width: 500px;
+  }
+
+  .rec {
+    background: white;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 18px 20px;
+    margin-bottom: 10px;
+    display: grid;
+    grid-template-columns: 32px 1fr auto;
+    gap: 14px;
+    align-items: flex-start;
+  }
+
+  .rec .num {
+    width: 28px;
+    height: 28px;
+    background: var(--accent);
+    color: white;
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 13px;
+  }
+
+  .rec h4 {
+    font-size: 14px;
+    font-weight: 590;
+    color: var(--ink);
+    margin-bottom: 4px;
+    letter-spacing: -0.1px;
+  }
+
+  .rec p {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.55;
+  }
+
+  .rec .impact {
+    font-size: 13px;
+    font-weight: 590;
+    color: var(--green);
+    background: var(--green-light);
+    padding: 5px 10px;
+    border-radius: 6px;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .cta {
+    background: linear-gradient(135deg, var(--accent-light), #f5f5ff);
+    border: 1px solid rgba(94,106,210,0.2);
+    border-radius: 12px;
+    padding: 24px;
+    margin-top: 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .cta .left {
+    flex: 1;
+  }
+
+  .cta h3 {
+    font-size: 18px;
+    font-weight: 590;
+    color: var(--ink);
+    margin-bottom: 6px;
+    letter-spacing: -0.3px;
+  }
+
+  .cta p {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.5;
+    max-width: 400px;
+  }
+
+  .cta .btn {
+    background: var(--accent);
+    color: white;
+    padding: 11px 20px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 510;
+    text-decoration: none;
+    display: inline-block;
+  }
+
+  .methodology {
+    margin-top: 20px;
+    font-size: 10px;
+    color: var(--muted);
+    line-height: 1.6;
+    border-top: 1px solid var(--line);
+    padding-top: 14px;
+  }
+
+  .methodology b { color: var(--ink-2); font-weight: 590; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════ PAGE 1: Cover ═══════════════════════════════════ -->
+<div class="page">
+
+  <div class="hdr">
+    <div class="brand">
+      <div class="brand-mark">AI</div>
+      <div class="brand-name">Altegio AI</div>
+    </div>
+    <div class="meta">
+      20 апреля 2026<br>
+      Приватный отчёт для руководства
+    </div>
+  </div>
+
+  <div class="cover">
+
+    <div class="top">
+      <div class="eyebrow">Аналитический отчёт · 46 дней</div>
+      <h1>Салон №1, Алматы<br>в цифрах</h1>
+      <div class="subtitle">Что показывают данные из Altegio, чего в Altegio не увидеть, и где потеряны 44.7 млн тенге.</div>
+
+      <div class="cover-stats">
+        <div class="cover-stat">
+          <div class="val">108.9M ₸</div>
+          <div class="lbl">Выручка / 46 дней</div>
+        </div>
+        <div class="cover-stat">
+          <div class="val">5 988</div>
+          <div class="lbl">Записей за период</div>
+        </div>
+        <div class="cover-stat">
+          <div class="val">33 755 ₸</div>
+          <div class="lbl">Средний чек</div>
+        </div>
+        <div class="cover-stat">
+          <div class="val">27 406</div>
+          <div class="lbl">Клиентов в базе</div>
+        </div>
+        <div class="cover-stat">
+          <div class="val">134</div>
+          <div class="lbl">Мастеров</div>
+        </div>
+        <div class="cover-stat">
+          <div class="val">53.5%</div>
+          <div class="lbl">Средняя загрузка</div>
+        </div>
+      </div>
+
+      <div class="cover-key">
+        <div class="lbl">⚠ Главное открытие</div>
+        <div class="big">44 700 000 ₸</div>
+        <div class="desc">Годовой размер скрытых потерь. Складывается из несостоявшихся записей, простоя кресел и ушедших клиентов. <b>Altegio эти цифры не считает — мы считаем.</b></div>
+      </div>
+    </div>
+
+    <div class="footer-info">
+      <span>Салон №1, Алматы · 1 локация · данные анонимизированы</span>
+      <span>Период: 1 марта — 16 апреля 2026</span>
+    </div>
+  </div>
+
+  <div class="page-n">1 / 3</div>
+</div>
+
+<!-- ═══════════════════════════════════ PAGE 2: Metrics ═══════════════════════════════════ -->
+<div class="page">
+
+  <div class="hdr">
+    <div class="brand">
+      <div class="brand-mark">AI</div>
+      <div class="brand-name">Altegio AI</div>
+    </div>
+    <div class="meta">
+      Салон №1, Алматы<br>
+      Стр. 2 · Метрики и мастера
+    </div>
+  </div>
+
+  <div class="page-title">01 · Ключевые показатели</div>
+  <h2 class="page-h">Как обстоят дела</h2>
+
+  <div class="kpi-grid">
+    <div class="kpi">
+      <div class="lbl">Выручка</div>
+      <div class="val">108.9M ₸</div>
+      <div class="delta up">↗ +9.2% к пред. периоду</div>
+    </div>
+    <div class="kpi">
+      <div class="lbl">Услуги</div>
+      <div class="val">93.6M ₸</div>
+      <div class="delta up">↗ +12% к пред.</div>
+    </div>
+    <div class="kpi">
+      <div class="lbl">Товары</div>
+      <div class="val">11.4M ₸</div>
+      <div class="delta down">↘ −15% к пред.</div>
+    </div>
+    <div class="kpi">
+      <div class="lbl">Средний чек</div>
+      <div class="val">33 755 ₸</div>
+      <div class="delta up">↗ +3.1%</div>
+    </div>
+    <div class="kpi">
+      <div class="lbl">Загрузка</div>
+      <div class="val">53.5%</div>
+      <div class="delta down">↘ −2.4%</div>
+    </div>
+    <div class="kpi">
+      <div class="lbl">Визиты</div>
+      <div class="val">4 514</div>
+      <div class="delta up">↗ +6% (из 5 988 записей)</div>
+    </div>
+    <div class="kpi">
+      <div class="lbl">% отмен</div>
+      <div class="val">22.1%</div>
+      <div class="delta down">↘ +4.3% плохо</div>
+    </div>
+    <div class="kpi">
+      <div class="lbl">Активных клиентов</div>
+      <div class="val">1 628</div>
+      <div class="delta down">↘ 6% от базы</div>
+    </div>
+  </div>
+
+  <div class="section-h">02 · Рейтинг мастеров (топ-10 по выручке)</div>
+
+  <div class="mtable">
+    <div class="row head">
+      <span>#</span><span>Мастер</span>
+      <span class="val">Выручка</span>
+      <span class="val">Ср.чек</span>
+      <span class="val">Загрузка</span>
+      <span class="val">Тренд</span>
+    </div>
+    <div class="row">
+      <span class="rank">1</span>
+      <span class="mname">Айгерим Касымова</span>
+      <span class="val">4.2M ₸</span>
+      <span class="val">42 857</span>
+      <span class="val">78%</span>
+      <span class="pct-green">+18%</span>
+    </div>
+    <div class="row">
+      <span class="rank">2</span>
+      <span class="mname">Гульмира Ахметова</span>
+      <span class="val">3.8M ₸</span>
+      <span class="val">37 624</span>
+      <span class="val">72%</span>
+      <span class="pct-green">+4%</span>
+    </div>
+    <div class="row">
+      <span class="rank">3</span>
+      <span class="mname">Нурлан Бакытов</span>
+      <span class="val">3.1M ₸</span>
+      <span class="val">31 632</span>
+      <span class="val">65%</span>
+      <span class="pct-red">−6%</span>
+    </div>
+    <div class="row">
+      <span class="rank">4</span>
+      <span class="mname">Диана Райханова</span>
+      <span class="val">2.8M ₸</span>
+      <span class="val">30 434</span>
+      <span class="val">69%</span>
+      <span class="pct-green">+12%</span>
+    </div>
+    <div class="row">
+      <span class="rank">5</span>
+      <span class="mname">Асель Мухтарова</span>
+      <span class="val">2.4M ₸</span>
+      <span class="val">27 906</span>
+      <span class="val">54%</span>
+      <span class="pct-red">−22%</span>
+    </div>
+    <div class="row">
+      <span class="rank">6</span>
+      <span class="mname">Данияр Сатыбалдиев</span>
+      <span class="val">2.1M ₸</span>
+      <span class="val">26 582</span>
+      <span class="val">61%</span>
+      <span class="pct-flat">0%</span>
+    </div>
+    <div class="row">
+      <span class="rank">7</span>
+      <span class="mname">Алина Жумабекова</span>
+      <span class="val">1.9M ₸</span>
+      <span class="val">26 027</span>
+      <span class="val">58%</span>
+      <span class="pct-green">+8%</span>
+    </div>
+  </div>
+
+  <div class="split">
+    <div class="split-card">
+      <div class="h">Источники записей</div>
+      <div class="bar-row">
+        <span class="lbl">Ресепшн</span>
+        <div class="bar"><div class="bar-fill" style="width: 79%"></div></div>
+        <span class="v">79%</span>
+      </div>
+      <div class="bar-row">
+        <span class="lbl">Онлайн-виджет</span>
+        <div class="bar"><div class="bar-fill" style="width: 17%"></div></div>
+        <span class="v">17%</span>
+      </div>
+      <div class="bar-row">
+        <span class="lbl">Altegio App</span>
+        <div class="bar"><div class="bar-fill" style="width: 2%"></div></div>
+        <span class="v">2%</span>
+      </div>
+      <div class="bar-row">
+        <span class="lbl">Я. Карты</span>
+        <div class="bar"><div class="bar-fill" style="width: 1%"></div></div>
+        <span class="v">1%</span>
+      </div>
+    </div>
+
+    <div class="split-card">
+      <div class="h">Сегменты клиентов (из 27 406)</div>
+      <div class="bar-row">
+        <span class="lbl">Активные</span>
+        <div class="bar"><div class="bar-fill" style="width: 6%; background: linear-gradient(90deg, #10b981, #34d399)"></div></div>
+        <span class="v">6%</span>
+      </div>
+      <div class="bar-row">
+        <span class="lbl">Возвратные</span>
+        <div class="bar"><div class="bar-fill" style="width: 82%; background: linear-gradient(90deg, #5e6ad2, #7170ff)"></div></div>
+        <span class="v">82%</span>
+      </div>
+      <div class="bar-row">
+        <span class="lbl">Новые / период</span>
+        <div class="bar"><div class="bar-fill" style="width: 18%; background: linear-gradient(90deg, #0ea5e9, #38bdf8)"></div></div>
+        <span class="v">18%</span>
+      </div>
+      <div class="bar-row">
+        <span class="lbl">Потерянные</span>
+        <div class="bar"><div class="bar-fill" style="width: 34%; background: linear-gradient(90deg, #f87171, #fb7185)"></div></div>
+        <span class="v">554</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-n">2 / 3</div>
+</div>
+
+<!-- ═══════════════════════════════════ PAGE 3: Recommendations ═══════════════════════════════════ -->
+<div class="page">
+
+  <div class="hdr">
+    <div class="brand">
+      <div class="brand-mark">AI</div>
+      <div class="brand-name">Altegio AI</div>
+    </div>
+    <div class="meta">
+      Салон №1, Алматы<br>
+      Стр. 3 · Потери и действия
+    </div>
+  </div>
+
+  <div class="page-title">03 · Где теряются деньги</div>
+  <h2 class="page-h">44.7 млн ₸ в год проходят мимо вас</h2>
+
+  <div class="loss-summary">
+    <div class="h">⚠ Скрытые потери за год</div>
+    <div class="big">44 700 000 ₸</div>
+    <div class="desc">Не считая то что уже заработано. Это то что можно вернуть при точной работе с отменами, простоем и возвратом ушедших клиентов. Altegio этих цифр не показывает.</div>
+  </div>
+
+  <div class="split">
+    <div class="split-card">
+      <div class="h" style="margin-bottom:12px">Разбор потерь</div>
+      <div style="font-size:12px;color:var(--muted);line-height:1.6">
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line)">
+          <span>Отмены (1 324 за период)</span>
+          <span style="color:var(--red);font-weight:590;font-variant-numeric:tabular-nums">14.6M ₸</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line)">
+          <span>Простой мастеров (46.5%)</span>
+          <span style="color:var(--red);font-weight:590;font-variant-numeric:tabular-nums">18.2M ₸</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line)">
+          <span>Ушедшие клиенты (554)</span>
+          <span style="color:var(--red);font-weight:590;font-variant-numeric:tabular-nums">8.6M ₸</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0">
+          <span>Падение товаров (−15%)</span>
+          <span style="color:var(--red);font-weight:590;font-variant-numeric:tabular-nums">3.3M ₸</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="split-card">
+      <div class="h" style="margin-bottom:12px">Мастера требующие внимания</div>
+      <div style="font-size:12px;color:var(--muted);line-height:1.6">
+        <div style="padding:6px 0;border-bottom:1px solid var(--line)">
+          <div style="color:var(--ink);font-weight:510">Айжан Т.</div>
+          <div>38% отмен · выручка −28%</div>
+        </div>
+        <div style="padding:6px 0;border-bottom:1px solid var(--line)">
+          <div style="color:var(--ink);font-weight:510">Асель М.</div>
+          <div>Загрузка 54% · выручка −22%</div>
+        </div>
+        <div style="padding:6px 0">
+          <div style="color:var(--ink);font-weight:510">Нурлан Б.</div>
+          <div>Отмены 15% · тренд −6%</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-h" style="margin-top:28px">3 действия чтобы вернуть деньги</div>
+
+  <div class="rec">
+    <div class="num">1</div>
+    <div>
+      <h4>Предоплата 30% для клиентов с историей отмен</h4>
+      <p>12% клиентов делают 3+ отмены в квартал. Это каждый восьмой. Ввод депозита отсечёт минимум половину несостоявшихся записей.</p>
+    </div>
+    <div class="impact">+6.5M ₸ / год</div>
+  </div>
+
+  <div class="rec">
+    <div class="num">2</div>
+    <div>
+      <h4>Загрузка провала 14:00–16:00</h4>
+      <p>Каждый день 8+ слотов в обеденное время стоят пусто. Промо "−20% на коррекцию будни 14–16" даст 60%+ заполняемость.</p>
+    </div>
+    <div class="impact">+4.8M ₸ / год</div>
+  </div>
+
+  <div class="rec">
+    <div class="num">3</div>
+    <div>
+      <h4>Реанимация 554 ушедших клиентов</h4>
+      <p>Это люди с историей трат. Персональное сообщение + −15% на первый визит. Реалистичная конверсия 8% = 44 клиента.</p>
+    </div>
+    <div class="impact">+6.8M ₸ / год</div>
+  </div>
+
+  <div class="cta">
+    <div class="left">
+      <h3>Хотите получать такие отчёты в Telegram каждое утро?</h3>
+      <p>Плюс дашборд по мастерам, алерты в реальном времени и советы от AI на основе ваших данных. Пилот для первых 10 салонов — бесплатно 2 месяца.</p>
+    </div>
+    <a href="#" class="btn">Подключиться →</a>
+  </div>
+
+  <div class="methodology">
+    <b>Методология.</b> Отмены: умножены на вероятность их восполнения 33% (каждый третий слот можно заполнить повторной записью). Простой: 46.5% пустых часов × 22 000 суммарных часов мастеров × 18 000 ₸/час × 10% реалистично закрываемая доля. Отток: 554 ушедших × средний LTV 155 000 ₸ × 10% реалистичный возврат. Расчёты консервативные. Все данные взяты из вашего Altegio API за 46 дней. Дубли исключены, тестовые записи отфильтрованы.
+  </div>
+
+  <div class="page-n">3 / 3</div>
+</div>
+
+</body>
+</html>

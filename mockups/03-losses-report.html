@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Altegio AI — Где вы теряете деньги</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;510;590;600;700;800&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, system-ui, sans-serif;
+    font-feature-settings: 'cv01', 'ss03';
+    background: #08090a;
+    min-height: 100vh;
+    color: #f7f8f8;
+    padding: 48px 24px;
+  }
+
+  .page {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 48px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .brand-mark {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, #5e6ad2, #7170ff);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    color: white;
+  }
+
+  .brand-name {
+    font-size: 16px;
+    font-weight: 590;
+    color: #f7f8f8;
+    letter-spacing: -0.2px;
+  }
+
+  .header .meta {
+    text-align: right;
+    font-size: 13px;
+    color: #62666d;
+    line-height: 1.5;
+  }
+
+  .header .meta b { color: #d0d6e0; font-weight: 510; }
+
+  /* Hero */
+  .hero {
+    text-align: center;
+    margin-bottom: 64px;
+  }
+
+  .hero .eyebrow {
+    font-size: 12px;
+    letter-spacing: 3px;
+    color: #f87171;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 16px;
+  }
+
+  .hero h1 {
+    font-size: 54px;
+    font-weight: 510;
+    letter-spacing: -1.3px;
+    line-height: 1.05;
+    color: #f7f8f8;
+    margin-bottom: 20px;
+  }
+
+  .hero h1 em {
+    font-style: normal;
+    background: linear-gradient(135deg, #f87171, #fb923c);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero .big-number {
+    font-size: 140px;
+    font-weight: 510;
+    letter-spacing: -4px;
+    line-height: 1;
+    background: linear-gradient(135deg, #f87171, #fb923c);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin: 32px 0 12px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .hero .big-sub {
+    font-size: 18px;
+    color: #8a8f98;
+    max-width: 600px;
+    margin: 0 auto;
+    line-height: 1.5;
+  }
+
+  .hero .big-sub b { color: #f7f8f8; font-weight: 510; }
+
+  /* Breakdown grid */
+  .section-title {
+    font-size: 12px;
+    letter-spacing: 3px;
+    color: #62666d;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 24px;
+  }
+
+  .breakdown {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-bottom: 64px;
+  }
+
+  .loss-card {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 28px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .loss-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(180deg, #f87171, transparent);
+  }
+
+  .loss-card .tag {
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    color: #f87171;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .loss-card h3 {
+    font-size: 20px;
+    font-weight: 590;
+    letter-spacing: -0.24px;
+    color: #f7f8f8;
+    margin-bottom: 8px;
+  }
+
+  .loss-card .amount {
+    font-size: 44px;
+    font-weight: 510;
+    color: #f7f8f8;
+    letter-spacing: -1.4px;
+    line-height: 1;
+    margin-top: 20px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .loss-card .amount .cur {
+    font-size: 24px;
+    color: #8a8f98;
+    font-weight: 400;
+    margin-left: 4px;
+  }
+
+  .loss-card .breakdown-text {
+    font-size: 14px;
+    color: #8a8f98;
+    line-height: 1.55;
+    margin-top: 12px;
+  }
+
+  .loss-card .formula {
+    font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+    font-size: 12px;
+    color: #62666d;
+    background: rgba(255,255,255,0.03);
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin-top: 16px;
+    letter-spacing: -0.2px;
+  }
+
+  /* Problem masters */
+  .problem-masters {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 64px;
+  }
+
+  .pm-header {
+    padding: 20px 28px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .pm-header h3 {
+    font-size: 20px;
+    font-weight: 590;
+    letter-spacing: -0.24px;
+  }
+
+  .pm-header .badge {
+    background: rgba(248,113,113,0.12);
+    color: #f87171;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 510;
+    border: 1px solid rgba(248,113,113,0.2);
+  }
+
+  .pm-table {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+    gap: 0;
+  }
+
+  .pm-th {
+    padding: 12px 20px;
+    font-size: 11px;
+    color: #62666d;
+    font-weight: 590;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .pm-td {
+    padding: 16px 20px;
+    font-size: 14px;
+    color: #d0d6e0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .pm-td.name { color: #f7f8f8; font-weight: 510; }
+  .pm-td.red { color: #f87171; font-weight: 510; }
+  .pm-td.green { color: #10b981; font-weight: 510; }
+
+  /* Recommendations */
+  .recs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 64px;
+  }
+
+  .rec-card {
+    background: linear-gradient(135deg, rgba(94,106,210,0.08), rgba(113,112,255,0.04));
+    border: 1px solid rgba(113,112,255,0.2);
+    border-radius: 16px;
+    padding: 24px;
+  }
+
+  .rec-card .num {
+    width: 32px;
+    height: 32px;
+    background: #5e6ad2;
+    color: white;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    margin-bottom: 16px;
+  }
+
+  .rec-card h4 {
+    font-size: 18px;
+    font-weight: 590;
+    color: #f7f8f8;
+    margin-bottom: 10px;
+    letter-spacing: -0.2px;
+    line-height: 1.25;
+  }
+
+  .rec-card p {
+    font-size: 14px;
+    color: #8a8f98;
+    line-height: 1.55;
+    margin-bottom: 16px;
+  }
+
+  .rec-card .impact {
+    font-size: 13px;
+    font-weight: 510;
+    color: #10b981;
+    background: rgba(16,185,129,0.08);
+    padding: 6px 10px;
+    border-radius: 6px;
+    display: inline-block;
+  }
+
+  /* Totals strip */
+  .total {
+    background: linear-gradient(135deg, rgba(16,185,129,0.1), rgba(16,185,129,0.04));
+    border: 1px solid rgba(16,185,129,0.25);
+    border-radius: 16px;
+    padding: 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 48px;
+  }
+
+  .total .left h3 {
+    font-size: 14px;
+    letter-spacing: 2px;
+    color: #10b981;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .total .left p {
+    font-size: 28px;
+    font-weight: 590;
+    color: #f7f8f8;
+    letter-spacing: -0.5px;
+    line-height: 1.2;
+    max-width: 500px;
+  }
+
+  .total .right {
+    text-align: right;
+  }
+
+  .total .amount {
+    font-size: 80px;
+    font-weight: 510;
+    color: #10b981;
+    letter-spacing: -2px;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .total .cur { font-size: 28px; color: #10b981; margin-left: 4px; }
+
+  .total .sub { font-size: 14px; color: #8a8f98; margin-top: 4px; }
+
+  .footer {
+    text-align: center;
+    padding-top: 32px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    color: #62666d;
+    font-size: 12px;
+    line-height: 1.8;
+  }
+
+  .footer a { color: #7170ff; text-decoration: none; font-weight: 510; }
+
+  @media (max-width: 900px) {
+    .hero h1 { font-size: 36px; }
+    .hero .big-number { font-size: 88px; }
+    .breakdown, .recs { grid-template-columns: 1fr; }
+    .pm-table { grid-template-columns: 2fr 1fr 1fr; font-size: 12px; }
+    .pm-th:nth-child(4), .pm-td:nth-child(9),
+    .pm-th:nth-child(5), .pm-td:nth-child(10) { display: none; }
+    .total { flex-direction: column; gap: 24px; text-align: center; }
+    .total .right { text-align: center; }
+    .total .amount { font-size: 56px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="brand">
+      <div class="brand-mark">AI</div>
+      <div class="brand-name">Altegio AI</div>
+    </div>
+    <div class="meta">
+      <b>Салон №1, Алматы</b><br>
+      Отчёт «Где вы теряете деньги»<br>
+      Период: 1 марта — 16 апреля 2026 (46 дней)
+    </div>
+  </div>
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="eyebrow">Скрытые потери за период</div>
+    <h1>Ваш салон теряет <em>44.7M ₸</em><br>в год и вы этого не видите</h1>
+    <div class="big-number">44.7M</div>
+    <div class="big-sub">В пересчёте на год. Складывается из <b>отмен, простоя кресел и ушедших клиентов</b>. Эти цифры не показывает Altegio — мы посчитали их по вашим реальным данным.</div>
+  </div>
+
+  <!-- Breakdown -->
+  <div class="section-title">Разбор по источникам</div>
+  <div class="breakdown">
+
+    <div class="loss-card">
+      <div class="tag">⛔ Отмены</div>
+      <h3>Несостоявшиеся записи</h3>
+      <div class="breakdown-text">
+        <b style="color:#f7f8f8">1 324 отмены</b> за 1.5 месяца — это 22% всех записей. Почти каждый 4-й клиент не пришёл. Слот стоял пустой, мастер потерял время.
+      </div>
+      <div class="amount">14.6M<span class="cur">₸</span></div>
+      <div class="formula">1 324 × ср. чек 33 755 ₸ × 33% восполняемость</div>
+    </div>
+
+    <div class="loss-card">
+      <div class="tag">🪑 Простой</div>
+      <h3>Пустые часы мастеров</h3>
+      <div class="breakdown-text">
+        Средняя загрузка — <b style="color:#f7f8f8">53.5%</b>. Это значит что почти половина рабочего времени ваших 134 мастеров оплачена в аренде и зарплате, но не генерирует выручку.
+      </div>
+      <div class="amount">18.2M<span class="cur">₸</span></div>
+      <div class="formula">46.5% простоя × 22K часов × 18K ₸/час × 10% реалистично закрываемая доля</div>
+    </div>
+
+    <div class="loss-card">
+      <div class="tag">👋 Отток</div>
+      <h3>Ушедшие клиенты</h3>
+      <div class="breakdown-text">
+        <b style="color:#f7f8f8">554 клиента</b> перестали приходить за последние 90 дней. Это люди которые оставили у вас сотни тысяч тенге и сейчас ходят к конкурентам.
+      </div>
+      <div class="amount">8.6M<span class="cur">₸</span></div>
+      <div class="formula">554 × средний LTV 155K ₸ × 10% реалистичный возврат</div>
+    </div>
+
+    <div class="loss-card">
+      <div class="tag">📉 Товары</div>
+      <h3>Падение розницы</h3>
+      <div class="breakdown-text">
+        Продажи товаров упали на <b style="color:#f87171">−15%</b> к предыдущему периоду. 11.4M вместо ~13.4M. Либо мастера перестали рекомендовать, либо ушла маржа.
+      </div>
+      <div class="amount">3.3M<span class="cur">₸</span></div>
+      <div class="formula">Разница 2M ₸ за 1.5 мес × год = ~16M, 20% восстановимая</div>
+    </div>
+
+  </div>
+
+  <!-- Problem masters -->
+  <div class="section-title">Кто тянет вниз: мастера-проблемы</div>
+  <div class="problem-masters">
+    <div class="pm-header">
+      <h3>Требуют разговора</h3>
+      <div class="badge">3 из 134</div>
+    </div>
+    <div class="pm-table">
+      <div class="pm-th">Мастер</div>
+      <div class="pm-th">Выручка</div>
+      <div class="pm-th">% отмен</div>
+      <div class="pm-th">Загрузка</div>
+      <div class="pm-th">Тренд</div>
+
+      <div class="pm-td name">Айжан Т.</div>
+      <div class="pm-td">1.2M ₸</div>
+      <div class="pm-td red">38%</div>
+      <div class="pm-td">41%</div>
+      <div class="pm-td red">−28% ↘</div>
+
+      <div class="pm-td name">Асель М.</div>
+      <div class="pm-td">2.4M ₸</div>
+      <div class="pm-td red">19%</div>
+      <div class="pm-td red">54%</div>
+      <div class="pm-td red">−22% ↘</div>
+
+      <div class="pm-td name">Нурлан Б.</div>
+      <div class="pm-td">3.1M ₸</div>
+      <div class="pm-td">15%</div>
+      <div class="pm-td">65%</div>
+      <div class="pm-td red">−6% ↘</div>
+    </div>
+  </div>
+
+  <!-- Recommendations -->
+  <div class="section-title">3 действия которые вернут деньги</div>
+  <div class="recs">
+
+    <div class="rec-card">
+      <div class="num">1</div>
+      <h4>Предоплата за записи с историей отмен</h4>
+      <p>У 12% клиентов — 3+ отмены за квартал. Ввести для них предоплату 30% или депозит. Это сократит отмены минимум в 2 раза.</p>
+      <div class="impact">+6.5M ₸ / год</div>
+    </div>
+
+    <div class="rec-card">
+      <div class="num">2</div>
+      <h4>Загрузить пустые часы 14:00–16:00 ежедневно</h4>
+      <p>В среднем 8 слотов стоят пусто в дневное время. Промо "−20% на коррекцию 14–16" заполнит их на 60%.</p>
+      <div class="impact">+4.8M ₸ / год</div>
+    </div>
+
+    <div class="rec-card">
+      <div class="num">3</div>
+      <h4>Вернуть 554 спящих клиентов</h4>
+      <p>SMS + звонок + скидка 15% на первый визит. При конверсии 8% вернутся 44 клиента со средним LTV 155K.</p>
+      <div class="impact">+6.8M ₸ / год</div>
+    </div>
+
+  </div>
+
+  <!-- Total -->
+  <div class="total">
+    <div class="left">
+      <h3>⚡ Реалистичный потенциал</h3>
+      <p>Если реализовать все 3 действия — восполните 40% потерь за 3 месяца</p>
+    </div>
+    <div class="right">
+      <div class="amount">+18.1M<span class="cur">₸ / год</span></div>
+      <div class="sub">= 1 новый топ-мастер или 2 месяца без аренды</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Отчёт сгенерирован Altegio AI · данные взяты из вашего Altegio за 46 дней<br>
+    Цифры основаны на реальных записях, транзакциях и истории клиентов. Методология расчётов — в приложении.<br>
+    <a href="#">altegio.ai</a> · <a href="#">@altegio_ai_bot</a>
+  </div>
+
+</div>
+
+</body>
+</html>
