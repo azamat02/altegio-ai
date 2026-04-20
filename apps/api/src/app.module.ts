@@ -5,6 +5,7 @@ import { QueuesModule } from './queues/queues.module';
 import { TenantsModule } from './modules/tenants/tenants.module';
 import { AltegioModule } from './modules/altegio/altegio.module';
 import { SyncModule } from './modules/sync/sync.module';
+import { MetricsModule } from './modules/metrics/metrics.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { SyncModule } from './modules/sync/sync.module';
     TenantsModule,
     AltegioModule,
     SyncModule,
+    MetricsModule,
   ],
 })
 export class AppModule {}
