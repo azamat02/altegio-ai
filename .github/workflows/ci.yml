@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push: { branches: [main] }
+  pull_request:
+
+jobs:
+  lint-test-build:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: altegio_test
+        options: >-
+          --health-cmd "pg_isready -U test" --health-interval 5s --health-retries 5
+        ports: ['5432:5432']
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 9 }
+      - uses: actions/setup-node@v4
+        with: { node-version: '20', cache: 'pnpm' }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm -F @altegio/shared build
+      - run: pnpm -F @altegio/api test
+      - env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/altegio_test
+          REDIS_URL: redis://localhost:6379
+          ALTEGIO_PARTNER_TOKEN: test
+          ALTEGIO_USER_TOKEN: test
+          APP_ENCRYPTION_KEY: ${{ github.sha }}0000000000000000000000000000000000000000000000000000
+        run: pnpm -F @altegio/api test:int
+      - run: pnpm -F @altegio/api build
+
+  publish-image:
+    needs: lint-test-build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions: { contents: read, packages: write }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/altegio-ai-api:latest
