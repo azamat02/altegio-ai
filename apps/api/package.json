@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@altegio/shared": "workspace:*",
+    "@anthropic-ai/sdk": "^0.90.0",
     "@nestjs/bullmq": "^11.0.4",
     "@nestjs/common": "^10.3.0",
     "@nestjs/config": "^4.0.4",
