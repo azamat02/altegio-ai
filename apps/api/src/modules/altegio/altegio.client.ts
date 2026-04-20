@@ -3,6 +3,12 @@ import axiosRetry from 'axios-retry';
 import Bottleneck from 'bottleneck';
 import type { AltegioAuthContext } from './types';
 
+export function buildAuthHeader(auth: AltegioAuthContext): string {
+  let v = `Bearer ${auth.partnerToken}`;
+  if (auth.userToken) v += `, User ${auth.userToken}`;
+  return v;
+}
+
 export interface AltegioClientOptions {
   baseUrl: string;
   requestsPerSecond?: number;
@@ -45,7 +51,7 @@ export class AltegioClient {
       url: path,
       method: 'GET',
       params,
-      headers: { Authorization: `Bearer ${auth.partnerToken}` },
+      headers: { Authorization: buildAuthHeader(auth) },
     };
     const res = await this.limiter.schedule(() => this.http.request<T>(cfg));
     return res.data;

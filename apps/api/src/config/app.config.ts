@@ -7,6 +7,7 @@ const schema = z.object({
   REDIS_URL: z.string().url(),
   ALTEGIO_BASE_URL: z.string().url().default('https://api.alteg.io/api/v1'),
   ALTEGIO_PARTNER_TOKEN: z.string().min(1),
+  ALTEGIO_USER_TOKEN: z.string().min(1),
   ANTHROPIC_API_KEY: z.string().min(1).optional().or(z.literal('').transform(() => undefined)),
   ANTHROPIC_MODEL: z.string().default('claude-haiku-4-5-20251001'),
   TELEGRAM_BOT_TOKEN: z.string().min(1).optional().or(z.literal('').transform(() => undefined)),

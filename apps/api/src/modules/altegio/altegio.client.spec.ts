@@ -42,4 +42,19 @@ describe('AltegioClient', () => {
     const c = new AltegioClient({ baseUrl: base, requestsPerSecond: 100 });
     await expect(c.get(auth, '/records/198823')).rejects.toThrow();
   });
+
+  it('includes User token when userToken provided', async () => {
+    const scope = nock(base, {
+      reqheaders: {
+        authorization: 'Bearer partner_xyz, User user_abc',
+      },
+    })
+      .get('/records/198823')
+      .query(true)
+      .reply(200, { success: true, data: [] });
+
+    const c = new AltegioClient({ baseUrl: base, requestsPerSecond: 10 });
+    await c.get({ partnerToken: 'partner_xyz', userToken: 'user_abc', locationId: 198823 }, '/records/198823');
+    scope.done();
+  });
 });

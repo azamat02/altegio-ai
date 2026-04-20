@@ -9,7 +9,7 @@ export class StaffEndpoint {
 
   async fetchAll(auth: AltegioAuthContext): Promise<AltegioStaffDto[]> {
     type Resp = { success: boolean; data: AltegioStaffDto[] };
-    const res = await this.client.get<Resp>(auth, `/company/${auth.locationId}/staff`);
+    const res = await this.client.get<Resp>(auth, `/staff/${auth.locationId}`);
     return res.data ?? [];
   }
 }

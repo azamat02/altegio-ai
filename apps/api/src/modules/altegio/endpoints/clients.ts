@@ -9,7 +9,7 @@ export class ClientsEndpoint {
 
   async fetchPage(auth: AltegioAuthContext, page = 1, count = 200): Promise<AltegioClientDto[]> {
     type Resp = { success: boolean; data: AltegioClientDto[] };
-    const res = await this.client.get<Resp>(auth, `/company/${auth.locationId}/clients`, { page, count });
+    const res = await this.client.get<Resp>(auth, `/clients/${auth.locationId}`, { page, count });
     return res.data ?? [];
   }
 
