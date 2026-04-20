@@ -15,6 +15,7 @@ const schema = z.object({
   APP_ENCRYPTION_KEY: z.string().regex(/^[0-9a-f]{64}$/, 'must be 32 bytes hex'),
   SENTRY_DSN: z.string().optional().or(z.literal('').transform(() => undefined)),
   LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
+  SCHEDULER_ENABLED: z.enum(['true', 'false']).default('false'),
 });
 
 export type AppConfig = z.infer<typeof schema>;

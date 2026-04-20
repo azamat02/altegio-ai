@@ -8,6 +8,7 @@ import { SyncModule } from './modules/sync/sync.module';
 import { MetricsModule } from './modules/metrics/metrics.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { TelegramModule } from './modules/telegram/telegram.module';
+import { SchedulerModule } from './modules/scheduler/scheduler.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { TelegramModule } from './modules/telegram/telegram.module';
     MetricsModule,
     ReportsModule,
     TelegramModule,
+    SchedulerModule.forRoot(),
   ],
 })
 export class AppModule {}
