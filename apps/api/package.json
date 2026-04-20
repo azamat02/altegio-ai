@@ -10,9 +10,9 @@
     "test": "jest --config jest.config.js",
     "test:watch": "jest --watch",
     "test:e2e": "jest --config jest-e2e.config.js",
-    "migration:generate": "node -r dotenv/config -r ts-node/register -r tsconfig-paths/register node_modules/typeorm/cli.js migration:generate -d src/db/data-source.ts",
-    "migration:run": "node -r dotenv/config -r ts-node/register -r tsconfig-paths/register node_modules/typeorm/cli.js migration:run -d src/db/data-source.ts",
-    "migration:revert": "node -r dotenv/config -r ts-node/register -r tsconfig-paths/register node_modules/typeorm/cli.js migration:revert -d src/db/data-source.ts",
+    "migration:generate": "DOTENV_CONFIG_PATH=../../.env node -r dotenv/config -r ts-node/register -r tsconfig-paths/register node_modules/typeorm/cli.js migration:generate -d src/db/data-source.ts",
+    "migration:run": "DOTENV_CONFIG_PATH=../../.env node -r dotenv/config -r ts-node/register -r tsconfig-paths/register node_modules/typeorm/cli.js migration:run -d src/db/data-source.ts",
+    "migration:revert": "DOTENV_CONFIG_PATH=../../.env node -r dotenv/config -r ts-node/register -r tsconfig-paths/register node_modules/typeorm/cli.js migration:revert -d src/db/data-source.ts",
     "migration:create": "node -r dotenv/config -r ts-node/register -r tsconfig-paths/register node_modules/typeorm/cli.js migration:create"
   },
   "dependencies": {
