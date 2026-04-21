@@ -13,6 +13,9 @@ export class ReportDeliveryEntity {
   @PrimaryColumn({ type: 'text', name: 'message_kind' })
   messageKind!: 'yesterday' | 'today';
 
+  @PrimaryColumn({ type: 'bigint', name: 'chat_id' })
+  chatId!: number;
+
   @Column('bigint', { name: 'message_id', nullable: true })
   messageId!: number | null;
 
