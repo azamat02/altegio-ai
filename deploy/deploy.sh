@@ -3,7 +3,9 @@ set -e
 
 cd "$(dirname "$0")/.."
 git pull origin main
-docker compose -f docker/docker-compose.prod.yml pull
-docker compose -f docker/docker-compose.prod.yml up -d
+
+COMPOSE=(docker compose --env-file .env -f docker/docker-compose.prod.yml)
+"${COMPOSE[@]}" pull
+"${COMPOSE[@]}" up -d
 docker image prune -f
 echo "Deploy complete."
