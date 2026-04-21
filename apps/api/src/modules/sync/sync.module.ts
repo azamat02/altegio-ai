@@ -14,6 +14,7 @@ import { ServicesParser } from './parsers/services.parser';
 import { ClientsParser } from './parsers/clients.parser';
 import { SyncService } from './sync.service';
 import { SyncProcessor } from './sync.processor';
+import { ResourceAffinityService } from './resource-affinity.service';
 import { TenantsModule } from '../tenants/tenants.module';
 import { AltegioModule } from '../altegio/altegio.module';
 
@@ -31,11 +32,11 @@ import { AltegioModule } from '../altegio/altegio.module';
     AltegioModule,
   ],
   providers: [
-    RawWriterService, AggregatorService,
+    RawWriterService, AggregatorService, ResourceAffinityService,
     RecordsParser, StaffParser, ServicesParser, ClientsParser,
     SyncService,
     SyncProcessor,
   ],
-  exports: [SyncService, AggregatorService],
+  exports: [SyncService, AggregatorService, ResourceAffinityService],
 })
 export class SyncModule {}
