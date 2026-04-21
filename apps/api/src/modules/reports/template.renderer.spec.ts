@@ -1,90 +1,113 @@
-import { renderReport, buildAttention } from './template.renderer';
-import { baseFixture as base } from './__fixtures__/report-data';
+import { renderYesterdayMessage, renderTodayMessage } from './template.renderer';
+import { baseFixture } from './__fixtures__/report-data';
 import { DailyReportData } from '@altegio/shared';
 
-describe('renderReport', () => {
-  it('renders the happy-path template with all sections', () => {
-    const txt = renderReport(base);
-    expect(txt).toContain('☀ Доброе утро!');
-    expect(txt).toContain('Салон №1');
-    expect(txt).toContain('Выручка:');
-    expect(txt).toContain('2\u00a0340\u00a0000 ₸');
-    expect(txt).toContain('+12% к среднему за неделю');
-    expect(txt).toContain('🏆 Топ-3 мастера');
-    expect(txt).toContain('1. Айгуль — 420\u00a0000 ₸ (11 визитов)');
-    expect(txt).toContain('⚠ Требует внимания');
-    expect(txt).toContain('📅 Сегодня');
-    expect(txt).toContain('87 записей, загрузка 61%');
-    expect(txt).toContain('Пустые слоты: 14:00, 18:00, 19:00');
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+function withY(patch: Partial<DailyReportData['yesterday']>): DailyReportData {
+  return { ...baseFixture, yesterday: { ...baseFixture.yesterday, ...patch } };
+}
+
+function withT(patch: Partial<DailyReportData['today']>): DailyReportData {
+  return { ...baseFixture, today: { ...baseFixture.today, ...patch } };
+}
+
+// ─── Yesterday ──────────────────────────────────────────────────────────────
+
+describe('renderYesterdayMessage', () => {
+  it('full happy path: cancellations > 0, goal available, insight present', () => {
+    const txt = renderYesterdayMessage(baseFixture);
+    expect(txt).toMatchInlineSnapshot(`
+"☀ Доброе утро! Салон №1, Алматы
+📊 Вчера · Вс, 19 апр
+
+• Выручка:      2\u00a0899\u00a0953\u00a0₸ (+7% к 7d avg)
+• Визитов:      93
+• Отменили:     4 (4%)
+• Средний чек:  31\u00a0182\u00a0₸
+• Загрузка:     64%
+• План месяца:  71% (19.5М из 27.5М)
+
+🏆 Топ-3 мастера
+1. Оксана Гарифзянова — 450\u00a0000\u00a0₸ (2 визита)
+2. Гульнара — 293\u00a0880\u00a0₸ (11 визитов)
+3. Насиба — 226\u00a0799\u00a0₸ (5 визитов)
+
+💡 Главный инсайт
+Воскресенье показало пик выручки за последние 2 недели. Стоит повторить промо."
+`);
   });
 
-  it('hides attention section when no rule triggers', () => {
-    const quiet: DailyReportData = {
-      ...base,
-      yesterday: { ...base.yesterday, cancelRate: 0.15, cancellationLoss: 50_000 },
-      strugglingStaff: [],
-      today: { ...base.today, occupancyPct: 70 },
-    };
-    expect(renderReport(quiet)).not.toContain('⚠ Требует внимания');
+  it('omits Отменили when cancelled = 0', () => {
+    const txt = renderYesterdayMessage(withY({ cancelled: 0 }));
+    expect(txt).not.toContain('Отменили');
   });
 
-  it('omits delta text when |delta| < 3%', () => {
-    const close: DailyReportData = { ...base, baseline7d: { ...base.baseline7d, avgRevenue: base.yesterday.revenue * 1.01 } };
-    const txt = renderReport(close);
-    const line = txt.split('\n').find((l: string) => l.startsWith('• Выручка'))!;
-    expect(line).not.toMatch(/[+−]\d+%/);
+  it('omits План месяца when monthlyGoalPct is null', () => {
+    const txt = renderYesterdayMessage(
+      withY({ monthlyGoalPct: null, monthlyGoalMtd: null, monthlyGoalTarget: null }),
+    );
+    expect(txt).not.toContain('План месяца');
   });
 
-  it('shows "визитов не было" on empty days', () => {
-    const empty: DailyReportData = {
-      ...base,
-      yesterday: { revenue: 0, visitsCompleted: 0, visitsCancelled: 0, avgCheck: 0, cancelRate: 0, cancellationLoss: 0 },
-      topStaff: [],
-    };
-    expect(renderReport(empty)).toContain('визитов не было');
+  it('omits AI insight block when aiInsight is null', () => {
+    const txt = renderYesterdayMessage(withY({ aiInsight: null }));
+    expect(txt).not.toContain('💡 Главный инсайт');
   });
 
-  it('drops empty-slots line when none', () => {
-    const noSlots: DailyReportData = { ...base, today: { ...base.today, emptySlots: [] } };
-    const txt = renderReport(noSlots);
-    expect(txt).not.toContain('Пустые слоты:');
+  it('omits Δ7d suffix when deltaPct is null', () => {
+    const txt = renderYesterdayMessage(withY({ deltaPct: null }));
+    const revLine = txt.split('\n').find((l) => l.startsWith('• Выручка'))!;
+    expect(revLine).not.toMatch(/к 7d avg/);
+    expect(revLine).not.toMatch(/[+−]\d+%/);
+  });
+
+  it('omits Загрузка when utilizationPct is null', () => {
+    const txt = renderYesterdayMessage(withY({ utilizationPct: null }));
+    expect(txt).not.toContain('Загрузка');
+  });
+
+  it('omits Средний чек when came = 0', () => {
+    const txt = renderYesterdayMessage(withY({ came: 0, avgCheck: null }));
+    expect(txt).not.toContain('Средний чек');
+  });
+
+  it('formats negative deltaPct with minus sign', () => {
+    const txt = renderYesterdayMessage(withY({ deltaPct: -12 }));
+    const revLine = txt.split('\n').find((l) => l.startsWith('• Выручка'))!;
+    expect(revLine).toContain('−12% к 7d avg');
   });
 });
 
-describe('buildAttention rules matrix', () => {
-  it('triggers cancel-spike bullet at 1.3x baseline', () => {
-    const d: DailyReportData = {
-      ...base,
-      baseline7d: { ...base.baseline7d, avgCancelRate: 0.10 },
-      yesterday: { ...base.yesterday, cancelRate: 0.14, visitsCancelled: 10, cancellationLoss: 300_000 },
-    };
-    expect(buildAttention(d)[0]).toMatch(/Рост отмен/);
+// ─── Today ───────────────────────────────────────────────────────────────────
+
+describe('renderTodayMessage', () => {
+  it('renders top-5 categories', () => {
+    const txt = renderTodayMessage(baseFixture);
+    expect(txt).toMatchInlineSnapshot(`
+"📅 Сегодня · Пн, 20 апр
+
+• Записей:  59
+• Загрузка: 82%
+
+📊 Заполненность по категориям
+• Маникюр      68% (12 визитов)
+• Аппараты     45% (8 визитов)
+• Макияж       30% (4 визита)
+• Депиляция    20% (3 визита)
+• Окрашивание  15% (2 визита)"
+`);
   });
 
-  it('does not trigger struggling bullet when list is empty', () => {
-    const d: DailyReportData = { ...base, strugglingStaff: [] };
-    expect(buildAttention(d).every((b) => !b.includes('день подряд'))).toBe(true);
+  it('omits the categories section when categories is empty', () => {
+    const txt = renderTodayMessage(withT({ categories: [] }));
+    expect(txt).not.toContain('Заполненность по категориям');
+    expect(txt).toContain('Записей:');
   });
 
-  it('triggers low-occupancy bullet below 40%', () => {
-    const d: DailyReportData = {
-      ...base,
-      today: { ...base.today, occupancyPct: 25 },
-    };
-    expect(buildAttention(d)).toContain('Низкая загрузка сегодня');
-  });
-
-  it('caps bullets at 3', () => {
-    const d: DailyReportData = {
-      ...base,
-      baseline7d: { ...base.baseline7d, avgCancelRate: 0.05 },
-      yesterday: { ...base.yesterday, cancelRate: 0.5, visitsCancelled: 80, cancellationLoss: 9e6 },
-      strugglingStaff: [
-        { staffId: 1, name: 'X', consecutiveDaysBelowAvg: 2 },
-        { staffId: 2, name: 'Y', consecutiveDaysBelowAvg: 2 },
-      ],
-      today: { ...base.today, occupancyPct: 20 },
-    };
-    expect(buildAttention(d).length).toBe(3);
+  it('omits Загрузка when utilizationPct is null', () => {
+    const txt = renderTodayMessage(withT({ utilizationPct: null }));
+    expect(txt).not.toContain('Загрузка');
+    expect(txt).toContain('Записей:');
   });
 });

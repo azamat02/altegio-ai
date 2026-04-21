@@ -1,19 +1,45 @@
 import { DailyReportData } from '@altegio/shared';
 
+/**
+ * Full Phase 1.1 fixture — all optional fields populated.
+ *
+ * Matches the spec example:
+ *   yesterday date: 2026-04-19 (Sun)
+ *   today date:     2026-04-20 (Mon)
+ *   timezone:       Asia/Almaty
+ */
 export const baseFixture: DailyReportData = {
-  tenant: { id: 't', salonName: 'Салон №1', timezone: 'Asia/Almaty' },
-  date: '2026-04-19',
+  salonName: 'Салон №1, Алматы',
+  timezone: 'Asia/Almaty',
   yesterday: {
-    revenue: 2_340_000, visitsCompleted: 148, visitsCancelled: 41,
-    avgCheck: 35_818, cancelRate: 41 / 189, cancellationLoss: 1_400_000,
+    date: '2026-04-19',
+    revenue: 2_899_953,
+    avg7: 2_710_236,
+    deltaPct: 7,
+    came: 93,
+    cancelled: 4,
+    avgCheck: 31_182,
+    utilizationPct: 64,
+    monthlyGoalPct: 71,
+    monthlyGoalTarget: 27_500_000,
+    monthlyGoalMtd: 19_500_000,
+    topStaff: [
+      { name: 'Оксана Гарифзянова', revenue: 450_000, visits: 2 },
+      { name: 'Гульнара', revenue: 293_880, visits: 11 },
+      { name: 'Насиба', revenue: 226_799, visits: 5 },
+    ],
+    aiInsight: 'Воскресенье показало пик выручки за последние 2 недели. Стоит повторить промо.',
   },
-  baseline7d: { avgRevenue: 2_088_000, avgVisits: 140, avgCancelRate: 0.16 },
-  topStaff: [
-    { staffId: 1, name: 'Айгуль', revenue: 420_000, visits: 11 },
-    { staffId: 2, name: 'Данияр', revenue: 380_000, visits: 9 },
-    { staffId: 3, name: 'Асель', revenue: 310_000, visits: 12 },
-  ],
-  strugglingStaff: [{ staffId: 10, name: 'Марат', consecutiveDaysBelowAvg: 2 }],
-  today: { bookedCount: 87, occupancyPct: 61, emptySlots: ['14:00', '18:00', '19:00'] },
-  cancelClusters: [{ staffName: 'Айгуль', hour: 16, count: 6 }],
+  today: {
+    date: '2026-04-20',
+    scheduled: 59,
+    utilizationPct: 82,
+    categories: [
+      { name: 'Маникюр', fillPct: 68, visits: 12 },
+      { name: 'Аппараты', fillPct: 45, visits: 8 },
+      { name: 'Макияж', fillPct: 30, visits: 4 },
+      { name: 'Депиляция', fillPct: 20, visits: 3 },
+      { name: 'Окрашивание', fillPct: 15, visits: 2 },
+    ],
+  },
 };

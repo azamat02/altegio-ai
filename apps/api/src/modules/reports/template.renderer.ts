@@ -1,80 +1,152 @@
 import { DailyReportData } from '@altegio/shared';
 
-const WEEKDAYS = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
-const MONTHS = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+// ── Money formatter ──────────────────────────────────────────────────────────
+// Uses Russian thin-space grouping (U+202F narrow no-break space via ru-RU
+// locale) and ₸ suffix with a non-breaking space before it.
+function fmtMoney(n: number): string {
+  const formatted = new Intl.NumberFormat('ru-RU').format(Math.round(n));
+  return `${formatted}\u00a0₸`;
+}
 
-export function renderReport(d: DailyReportData): string {
+// ── Pluralisation helper ──────────────────────────────────────────────────────
+// Russian rules: 1 → визит, 2-4 → визита, 5+ (and 11-14) → визитов
+function pluralVisits(n: number): string {
+  const abs = Math.abs(n);
+  const mod10 = abs % 10;
+  const mod100 = abs % 100;
+  if (mod100 >= 11 && mod100 <= 14) return `${n} визитов`;
+  if (mod10 === 1) return `${n} визит`;
+  if (mod10 >= 2 && mod10 <= 4) return `${n} визита`;
+  return `${n} визитов`;
+}
+
+// ── Date formatter ────────────────────────────────────────────────────────────
+// Accepts a YYYY-MM-DD local date string and the tenant timezone.
+// Interprets the date as noon local time to avoid DST/boundary flips.
+function formatLocalDate(ymd: string, timezone: string): string {
+  // e.g. "2026-04-19T12:00:00" interpreted in the given timezone
+  const fmt = new Intl.DateTimeFormat('ru-RU', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    timeZone: timezone,
+  });
+  const localNoon = new Date(`${ymd}T12:00:00`);
+  // Format and clean up: Intl produces e.g. "вс, 19 апр." → we want "Вс, 19 апр"
+  const raw = fmt.format(localNoon);
+  // Capitalise first letter, strip trailing dot from month abbreviation
+  return raw.replace(/^(.)/, (c) => c.toUpperCase()).replace(/\.$/, '');
+}
+
+// ── Percentage formatter ──────────────────────────────────────────────────────
+function fmtPct(n: number): string {
+  return `${Math.round(n)}%`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Message 1 — Yesterday
+// ─────────────────────────────────────────────────────────────────────────────
+export function renderYesterdayMessage(data: DailyReportData): string {
+  const { salonName, timezone, yesterday: y } = data;
+  const dateStr = formatLocalDate(y.date, timezone);
+
   const lines: string[] = [];
-  lines.push(`☀ Доброе утро! ${d.tenant.salonName} · ${formatDate(d.date)}`);
+
+  // Header block
+  lines.push(`☀ Доброе утро! ${salonName}`);
+  lines.push(`📊 Вчера · ${dateStr}`);
   lines.push('');
 
-  if (d.yesterday.visitsCompleted === 0 && d.yesterday.visitsCancelled === 0) {
-    lines.push('📊 Вчера');
-    lines.push('• визитов не было');
-  } else {
-    lines.push('📊 Вчера');
-    lines.push(`• Выручка: ${fmtAmount(d.yesterday.revenue)} ₸${delta(d.yesterday.revenue, d.baseline7d.avgRevenue)}`);
-    lines.push(`• Визитов: ${d.yesterday.visitsCompleted} (пришли) / ${d.yesterday.visitsCancelled} (отменили, ${Math.round(d.yesterday.cancelRate * 100)}%)`);
-    lines.push(`• Средний чек: ${fmtAmount(d.yesterday.avgCheck)} ₸`);
+  // Metrics list
+  // Revenue line — with optional Δ7d suffix
+  const deltaSuffix =
+    y.deltaPct !== null
+      ? ` (${y.deltaPct >= 0 ? '+' : '−'}${Math.abs(Math.round(y.deltaPct))}% к 7d avg)`
+      : '';
+  lines.push(`• Выручка:      ${fmtMoney(y.revenue)}${deltaSuffix}`);
+  lines.push(`• Визитов:      ${y.came}`);
+
+  // Cancellations — only when cancelled > 0
+  if (y.cancelled > 0) {
+    const total = y.came + y.cancelled;
+    const pct = total > 0 ? Math.round((y.cancelled / total) * 100) : 0;
+    lines.push(`• Отменили:     ${y.cancelled} (${pct}%)`);
   }
 
-  if (d.topStaff.length > 0) {
+  // Average check — only when came > 0 and avgCheck not null
+  if (y.came > 0 && y.avgCheck !== null) {
+    lines.push(`• Средний чек:  ${fmtMoney(y.avgCheck)}`);
+  }
+
+  // Utilisation — skip when null
+  if (y.utilizationPct !== null) {
+    lines.push(`• Загрузка:     ${fmtPct(y.utilizationPct)}`);
+  }
+
+  // Monthly goal — only when available
+  if (
+    y.monthlyGoalPct !== null &&
+    y.monthlyGoalMtd !== null &&
+    y.monthlyGoalTarget !== null
+  ) {
+    const mtdM = (y.monthlyGoalMtd / 1_000_000).toFixed(1);
+    const targetM = (y.monthlyGoalTarget / 1_000_000).toFixed(1);
+    lines.push(`• План месяца:  ${fmtPct(y.monthlyGoalPct)} (${mtdM}М из ${targetM}М)`);
+  }
+
+  // Top staff
+  if (y.topStaff.length > 0) {
     lines.push('');
     lines.push('🏆 Топ-3 мастера');
-    d.topStaff.forEach((s, i) => {
-      lines.push(`${i + 1}. ${s.name} — ${fmtAmount(s.revenue)} ₸ (${s.visits} визитов)`);
+    y.topStaff.forEach((s, i) => {
+      lines.push(`${i + 1}. ${s.name} — ${fmtMoney(s.revenue)} (${pluralVisits(s.visits)})`);
     });
   }
 
-  const attention = buildAttention(d);
-  if (attention.length > 0) {
+  // AI insight
+  if (y.aiInsight !== null) {
     lines.push('');
-    lines.push('⚠ Требует внимания');
-    attention.forEach((b) => lines.push(`• ${b}`));
-  }
-
-  lines.push('');
-  lines.push('📅 Сегодня');
-  lines.push(`• ${d.today.bookedCount} записей, загрузка ${Math.round(d.today.occupancyPct)}%`);
-  if (d.today.emptySlots.length > 0) {
-    lines.push(`• Пустые слоты: ${d.today.emptySlots.join(', ')}`);
+    lines.push('💡 Главный инсайт');
+    lines.push(y.aiInsight);
   }
 
   return lines.join('\n');
 }
 
-export function buildAttention(d: DailyReportData): string[] {
-  const bullets: string[] = [];
+// ─────────────────────────────────────────────────────────────────────────────
+// Message 2 — Today
+// ─────────────────────────────────────────────────────────────────────────────
+export function renderTodayMessage(data: DailyReportData): string {
+  const { timezone, today: t } = data;
+  const dateStr = formatLocalDate(t.date, timezone);
 
-  const baselineRate = d.baseline7d.avgCancelRate || 0;
-  if (baselineRate > 0 && d.yesterday.cancelRate > baselineRate * 1.3 && d.yesterday.visitsCancelled > 0) {
-    bullets.push(`Рост отмен: ${d.yesterday.visitsCancelled} отмен, потеря ~${fmtAmount(Math.round(d.yesterday.cancellationLoss / 1000))}K ₸`);
+  const lines: string[] = [];
+
+  lines.push(`📅 Сегодня · ${dateStr}`);
+  lines.push('');
+
+  lines.push(`• Записей:  ${t.scheduled}`);
+  if (t.utilizationPct !== null) {
+    lines.push(`• Загрузка: ${fmtPct(t.utilizationPct)}`);
   }
 
-  for (const s of d.strugglingStaff.slice(0, 2)) {
-    bullets.push(`${s.name} — ${s.consecutiveDaysBelowAvg}-й день подряд ниже среднего`);
+  // Category breakdown — only when non-empty
+  if (t.categories.length > 0) {
+    lines.push('');
+    lines.push('📊 Заполненность по категориям');
+    for (const cat of t.categories) {
+      const label = cat.name.padEnd(12);
+      lines.push(`• ${label} ${fmtPct(cat.fillPct)} (${pluralVisits(cat.visits)})`);
+    }
   }
 
-  if (d.today.occupancyPct < 40) {
-    bullets.push('Низкая загрузка сегодня');
-  }
-
-  return bullets.slice(0, 3);
+  return lines.join('\n');
 }
 
-function delta(current: number, baseline: number): string {
-  if (!baseline) return '';
-  const pct = ((current - baseline) / baseline) * 100;
-  if (Math.abs(pct) < 3) return '';
-  const sign = pct >= 0 ? '+' : '−';
-  return ` (${sign}${Math.round(Math.abs(pct))}% к среднему за неделю)`;
-}
-
-function fmtAmount(n: number): string {
-  return new Intl.NumberFormat('ru-RU').format(Math.round(n));
-}
-
-function formatDate(iso: string): string {
-  const d = new Date(iso + 'T00:00:00Z');
-  return `${WEEKDAYS[d.getUTCDay()]}, ${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`;
+// ─────────────────────────────────────────────────────────────────────────────
+// Legacy shim — kept because reports.service.ts still imports renderReport.
+// Tasks 22/23 will replace this once the service is updated.
+// ─────────────────────────────────────────────────────────────────────────────
+export function renderReport(data: DailyReportData): string {
+  return `${renderYesterdayMessage(data)}\n---8<---\n${renderTodayMessage(data)}`;
 }
