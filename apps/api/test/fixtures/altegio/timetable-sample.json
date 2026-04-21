@@ -1,0 +1,5 @@
+[
+  { "date": "2026-04-19", "is_working": true, "slots": [{ "from": "10:00", "to": "20:00" }] },
+  { "date": "2026-04-20", "is_working": true, "slots": [{ "from": "09:00", "to": "13:00" }, { "from": "14:00", "to": "18:00" }] },
+  { "date": "2026-04-21", "is_working": false, "slots": [] }
+]
