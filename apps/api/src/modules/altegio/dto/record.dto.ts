@@ -15,4 +15,5 @@ export interface AltegioRecordDto {
   deleted: boolean;
   visit_id?: number;
   create_date?: string;
+  resource_instance_ids?: number[];
 }
