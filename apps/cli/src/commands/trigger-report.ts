@@ -12,9 +12,11 @@ export function triggerReportCommand(): Command {
       const app = await bootstrapApp();
       const svc = app.get(ReportsService);
       if (opts.dryRun) {
-        const txt = await svc.buildText(opts.tenant, opts.date);
-        console.log('---8<---');
-        console.log(txt);
+        const { yesterday, today } = await svc.buildMessages(opts.tenant, opts.date);
+        console.log('---8<--- [yesterday] ---8<---');
+        console.log(yesterday);
+        console.log('---8<--- [today] ---8<---');
+        console.log(today);
         console.log('---8<---');
       } else {
         await svc.generateAndDeliver(opts.tenant, opts.date);
