@@ -8,8 +8,7 @@ import { RecordsParser, RecordRow } from './parsers/records.parser';
 import { StaffParser, StaffRow } from './parsers/staff.parser';
 import { ServicesParser, ServiceRow } from './parsers/services.parser';
 import { ClientsParser, ClientRow } from './parsers/clients.parser';
-import { parseResources } from './parsers/resources.parser';
-import { parseTimetable } from './parsers/timetable.parser';
+import { parseStaffSchedule } from './parsers/timetable.parser';
 import { RecordsEndpoint } from '../altegio/endpoints/records';
 import { ClientsEndpoint } from '../altegio/endpoints/clients';
 import { StaffEndpoint } from '../altegio/endpoints/staff';
@@ -41,7 +40,7 @@ export class SyncService {
     private readonly cliEp: ClientsEndpoint,
     private readonly stfEp: StaffEndpoint,
     private readonly svcEp: ServicesEndpoint,
-    private readonly resEp: ResourcesEndpoint,
+    private readonly _resEp: ResourcesEndpoint,
     private readonly ttEp: TimetableEndpoint,
   ) {}
 
@@ -86,16 +85,11 @@ export class SyncService {
       await this.rawWriter.writeClients(tenantId, cliBatch);
       await this.upsertClients(tenantId, cliBatch.map((c) => this.cliParser.toRow(tenantId, c)));
 
-      // 4) Resources + per-resource timetable
-      const resources = await this.resEp.fetchAll(auth);
-      await this.rawWriter.upsertResources(parseResources(tenantId, resources));
-
-      const ttStart = fmt(new Date(Date.now() - days * 86_400_000));
-      const ttEnd = fmt(new Date(Date.now() + 86_400_000)); // include tomorrow
-      for (const r of resources) {
-        const tt = await this.ttEp.fetchResourceRange(auth, r.id, ttStart, ttEnd);
-        await this.rawWriter.upsertResourceSchedule(parseTimetable(tenantId, r.id, tt));
-      }
+      // 4) Staff schedule (single call for entire date range)
+      const scheduleStart = fmt(new Date(Date.now() - days * 86_400_000));
+      const scheduleEnd = fmt(new Date(Date.now() + 86_400_000)); // include tomorrow
+      const schedule = await this.ttEp.fetchStaffSchedule(auth, scheduleStart, scheduleEnd);
+      await this.rawWriter.upsertResourceSchedule(parseStaffSchedule(tenantId, schedule));
 
       // 5) Aggregate every touched date
       for (const d of touchedDates) {

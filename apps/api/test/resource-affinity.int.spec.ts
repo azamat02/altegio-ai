@@ -22,9 +22,8 @@ async function seedServices(
 }
 
 /**
- * Bulk-insert `count` records for a given (tenantId, resourceId, serviceId).
- * All records are attendance=1, within the last 90 days, and include the
- * resource in their resource_instance_ids array.
+ * Bulk-insert `count` records for a given (tenantId, staffId, serviceId).
+ * All records are attendance=1, within the last 90 days, keyed by altegio_staff_id.
  *
  * Uses a generate_series approach to avoid per-row round-trips while keeping
  * the parameterisation simple enough for Postgres type inference.
@@ -37,14 +36,15 @@ async function seedRecords(
   const { resourceId, serviceId, count, startId = 1 } = opts;
   // generate_series produces `count` rows; we compute each record_id offset from startId.
   // Days offset cycles through 1..80 so every row falls within the 90-day window.
+  // resourceId is used as altegio_staff_id (the new capacity unit).
   await ds.query(
     `INSERT INTO records
-       (tenant_id, altegio_record_id, altegio_service_id, resource_instance_ids, datetime,
+       (tenant_id, altegio_record_id, altegio_staff_id, altegio_service_id, datetime,
         seance_length, cost, attendance, paid_full, is_online, deleted)
      SELECT $1::uuid,
             $4::bigint + g.i - 1,
+            $3::bigint,
             $2::bigint,
-            ARRAY[$3::bigint],
             now() - (((g.i - 1) % 80 + 1)::text || ' days')::interval,
             3600, 1000, 1, 1, false, false
      FROM generate_series(1, $5::int) AS g(i)`,

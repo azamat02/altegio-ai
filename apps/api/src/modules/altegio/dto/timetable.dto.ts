@@ -1,5 +1,5 @@
-export interface AltegioResourceTimetableDto {
+export interface AltegioStaffScheduleDto {
+  staff_id: number;
   date: string;            // YYYY-MM-DD
-  is_working: boolean;
   slots: Array<{ from: string; to: string }>; // HH:mm
 }

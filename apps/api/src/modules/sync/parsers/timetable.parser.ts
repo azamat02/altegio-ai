@@ -1,4 +1,4 @@
-import { AltegioResourceTimetableDto } from '../../altegio/dto/timetable.dto';
+import { AltegioStaffScheduleDto } from '../../altegio/dto/timetable.dto';
 
 export interface ResourceScheduleRow {
   tenantId: string;
@@ -7,16 +7,15 @@ export interface ResourceScheduleRow {
   workingMinutes: number;
 }
 
-export function parseTimetable(
+export function parseStaffSchedule(
   tenantId: string,
-  resourceAltegioId: number,
-  dtos: AltegioResourceTimetableDto[],
+  dtos: AltegioStaffScheduleDto[],
 ): ResourceScheduleRow[] {
   return dtos.map(d => ({
     tenantId,
-    resourceAltegioId,
+    resourceAltegioId: d.staff_id, // reusing the existing column
     date: d.date,
-    workingMinutes: !d.is_working ? 0 : d.slots.reduce((acc, s) => acc + diffMinutes(s.from, s.to), 0),
+    workingMinutes: (d.slots ?? []).reduce((acc, s) => acc + diffMinutes(s.from, s.to), 0),
   }));
 }
 
