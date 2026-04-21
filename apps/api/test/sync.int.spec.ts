@@ -86,6 +86,16 @@ describe('SyncService integration', () => {
     expect(dm.length).toBeGreaterThan(0);
   });
 
+  it('persists resource_instance_ids into records', async () => {
+    const t = await tenants.create({ salonName: 'RIITest', locationId: 199001, altegioToken: 'z', timezone: 'Asia/Almaty' });
+    await svc.syncTenant(t.id);
+    const rows = await db.ds.query(
+      `SELECT resource_instance_ids FROM records WHERE tenant_id = $1 AND cardinality(resource_instance_ids) > 0`,
+      [t.id],
+    );
+    expect(rows.length).toBeGreaterThan(0);
+  });
+
   it('pulls resources and populates resource_schedule', async () => {
     const t = await tenants.create({ salonName: 'ResourceTest', locationId: 199000, altegioToken: 'y', timezone: 'Asia/Almaty' });
 

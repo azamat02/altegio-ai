@@ -126,21 +126,29 @@ export class SyncService {
 
   private async upsertRecords(rows: RecordRow[]): Promise<void> {
     if (rows.length === 0) return;
-    const COLS = 12;
+    // Per-row VALUES approach (unnest with bigint[][] doesn't work in pg driver).
+    // Column 13 (resource_instance_ids) is cast explicitly to bigint[].
+    const COLS = 13;
     const values = rows
       .map((_, i) => {
         const base = i * COLS;
-        return `(${Array.from({ length: COLS }, (_, j) => `$${base + j + 1}`).join(', ')})`;
+        const params = Array.from({ length: COLS }, (__, j) => {
+          const pos = base + j + 1;
+          return j === 12 ? `$${pos}::bigint[]` : `$${pos}`;
+        });
+        return `(${params.join(', ')})`;
       })
       .join(', ');
     const params = rows.flatMap((r) => [
       r.tenantId, r.altegioRecordId, r.altegioStaffId, r.altegioClientId,
-      r.altegioServiceId, r.datetime, r.seanceLength, r.cost, r.attendance, r.paidFull, r.isOnline, r.deleted,
+      r.altegioServiceId, r.datetime, r.seanceLength, r.cost, r.attendance, r.paidFull,
+      r.isOnline, r.deleted, r.resourceInstanceIds,
     ]);
     await this.ds.query(
       `
       INSERT INTO records
-        (tenant_id, altegio_record_id, altegio_staff_id, altegio_client_id, altegio_service_id, datetime, seance_length, cost, attendance, paid_full, is_online, deleted)
+        (tenant_id, altegio_record_id, altegio_staff_id, altegio_client_id, altegio_service_id,
+         datetime, seance_length, cost, attendance, paid_full, is_online, deleted, resource_instance_ids)
       VALUES ${values}
       ON CONFLICT (tenant_id, altegio_record_id) DO UPDATE SET
         altegio_staff_id = EXCLUDED.altegio_staff_id,
@@ -153,6 +161,7 @@ export class SyncService {
         paid_full = EXCLUDED.paid_full,
         is_online = EXCLUDED.is_online,
         deleted = EXCLUDED.deleted,
+        resource_instance_ids = EXCLUDED.resource_instance_ids,
         updated_at = now()
       `,
       params,
