@@ -20,6 +20,12 @@ function pluralVisits(n: number): string {
   return `${n} визитов`;
 }
 
+// ── Bookings abbreviation helper ──────────────────────────────────────────────
+// Spec §3: categories section uses abbreviated "зап." regardless of N.
+function pluralBookings(n: number): string {
+  return `${n} зап.`;
+}
+
 // ── Date formatter ────────────────────────────────────────────────────────────
 // Accepts a YYYY-MM-DD local date string and the tenant timezone.
 // Interprets the date as noon local time to avoid DST/boundary flips.
@@ -136,7 +142,7 @@ export function renderTodayMessage(data: DailyReportData): string {
     lines.push('📊 Заполненность по категориям');
     for (const cat of t.categories) {
       const label = cat.name.padEnd(12);
-      lines.push(`• ${label} ${fmtPct(cat.fillPct)} (${pluralVisits(cat.visits)})`);
+      lines.push(`• ${label} ${fmtPct(cat.fillPct)} (${pluralBookings(cat.visits)})`);
     }
   }
 

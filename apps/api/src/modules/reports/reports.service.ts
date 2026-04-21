@@ -43,10 +43,13 @@ export class ReportsService {
     let yesterdaySent = false;
 
     for (const kind of kinds) {
-      // Idempotency check — already delivered this kind → skip
-      const existing = await this.deliveries.findBy({ tenantId, date: yesterdayDateString, messageKind: kind });
-      if (existing.length > 0) {
-        this.log.log(`Report kind='${kind}' already recorded for ${tenantId} ${yesterdayDateString}, skip`);
+      // Idempotency check — only skip when a row with status='sent' already exists.
+      // A 'failed' row does NOT block retries.
+      const already = await this.deliveries.findOne({
+        where: { tenantId, date: yesterdayDateString, messageKind: kind, status: 'sent' },
+      });
+      if (already) {
+        this.log.log(`Report kind='${kind}' already delivered for ${tenantId} ${yesterdayDateString}, skip`);
         if (kind === 'yesterday') yesterdaySent = false; // was pre-existing, not just sent
         continue;
       }
@@ -62,7 +65,8 @@ export class ReportsService {
 
       try {
         const { messageId } = await this.telegram.sendReport(chatId, text);
-        await this.deliveries.insert({
+        // Use save() so a prior failed row (same PK) is overwritten rather than causing a PK collision
+        await this.deliveries.save({
           tenantId,
           date: yesterdayDateString,
           messageKind: kind,
@@ -74,7 +78,7 @@ export class ReportsService {
         this.log.log(`Report kind='${kind}' delivered to ${tenant.salonName} (${yesterdayDateString})`);
         if (kind === 'yesterday') yesterdaySent = true;
       } catch (err: any) {
-        await this.deliveries.insert({
+        await this.deliveries.save({
           tenantId,
           date: yesterdayDateString,
           messageKind: kind,

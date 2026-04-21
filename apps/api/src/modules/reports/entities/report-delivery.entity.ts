@@ -10,7 +10,7 @@ export class ReportDeliveryEntity {
   @PrimaryColumn('date')
   date!: string;
 
-  @Column({ type: 'text', name: 'message_kind' })
+  @PrimaryColumn({ type: 'text', name: 'message_kind' })
   messageKind!: 'yesterday' | 'today';
 
   @Column('bigint', { name: 'message_id', nullable: true })

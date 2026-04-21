@@ -12,8 +12,8 @@ function cloneFixture() {
 
 function makeDeliveriesRepo() {
   return {
-    findBy: jest.fn<Promise<any[]>, any[]>().mockResolvedValue([]),
-    insert: jest.fn<Promise<void>, any[]>().mockResolvedValue(undefined),
+    findOne: jest.fn<Promise<any | null>, any[]>().mockResolvedValue(null),
+    save: jest.fn<Promise<any>, any[]>().mockImplementation((v) => Promise.resolve(v)),
   };
 }
 
@@ -52,31 +52,31 @@ function makeSvc(overrides: {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('ReportsService.generateAndDeliver', () => {
-  it('sends two messages and inserts two report_deliveries rows', async () => {
+  it('sends two messages and saves two report_deliveries rows', async () => {
     const { svc, telegram, deliveries } = makeSvc({});
     await svc.generateAndDeliver('t-1', '2026-04-20');
 
     expect(telegram.sendReport).toHaveBeenCalledTimes(2);
-    expect(deliveries.insert).toHaveBeenCalledTimes(2);
+    expect(deliveries.save).toHaveBeenCalledTimes(2);
 
-    const calls = deliveries.insert.mock.calls;
+    const calls = deliveries.save.mock.calls;
     expect(calls[0][0]).toMatchObject({ messageKind: 'yesterday', status: 'sent', tenantId: 't-1', date: '2026-04-19' });
     expect(calls[1][0]).toMatchObject({ messageKind: 'today', status: 'sent', tenantId: 't-1', date: '2026-04-19' });
   });
 
   it('is idempotent per kind — a pre-sent kind is skipped, the other still sends', async () => {
     const deliveries = makeDeliveriesRepo();
-    // First findBy call (kind='yesterday') returns an existing row
-    deliveries.findBy.mockResolvedValueOnce([{ tenantId: 't-1', date: '2026-04-19', messageKind: 'yesterday', status: 'sent' }]);
-    // Second findBy call (kind='today') returns empty
-    deliveries.findBy.mockResolvedValueOnce([]);
+    // First findOne call (kind='yesterday') returns an existing sent row → skip
+    deliveries.findOne.mockResolvedValueOnce({ tenantId: 't-1', date: '2026-04-19', messageKind: 'yesterday', status: 'sent' });
+    // Second findOne call (kind='today') returns null → send
+    deliveries.findOne.mockResolvedValueOnce(null);
 
     const { svc, telegram } = makeSvc({ deliveries });
     await svc.generateAndDeliver('t-1', '2026-04-20');
 
     expect(telegram.sendReport).toHaveBeenCalledTimes(1);
-    expect(deliveries.insert).toHaveBeenCalledTimes(1);
-    expect(deliveries.insert).toHaveBeenCalledWith(expect.objectContaining({ messageKind: 'today' }));
+    expect(deliveries.save).toHaveBeenCalledTimes(1);
+    expect(deliveries.save).toHaveBeenCalledWith(expect.objectContaining({ messageKind: 'today' }));
   });
 
   it('records a failed delivery and re-throws on telegram error', async () => {
@@ -85,9 +85,24 @@ describe('ReportsService.generateAndDeliver', () => {
 
     await expect(svc.generateAndDeliver('t-1', '2026-04-20')).rejects.toThrow('tg 500');
 
-    expect(deliveries.insert).toHaveBeenCalledWith(
+    expect(deliveries.save).toHaveBeenCalledWith(
       expect.objectContaining({ status: 'failed', error: expect.stringContaining('tg 500') }),
     );
+  });
+
+  it('retries successfully after a prior failed row', async () => {
+    const deliveries = makeDeliveriesRepo();
+    // Both findOne calls return null (failed rows do NOT block retries)
+    deliveries.findOne.mockResolvedValue(null);
+
+    const { svc, telegram } = makeSvc({ deliveries });
+    await svc.generateAndDeliver('t-1', '2026-04-20');
+
+    // Both messages should be sent
+    expect(telegram.sendReport).toHaveBeenCalledTimes(2);
+    // Both saved rows should have status='sent'
+    const saves = deliveries.save.mock.calls.map((c: any[]) => c[0]);
+    expect(saves.every((s: any) => s.status === 'sent')).toBe(true);
   });
 
   it('throws when tenant not found', async () => {
@@ -123,8 +138,8 @@ describe('ReportsService.buildMessages', () => {
     expect(out.yesterday).toContain('☀');
     expect(out.today).toContain('📅 Сегодня');
     expect(telegram.sendReport).not.toHaveBeenCalled();
-    expect(deliveries.insert).not.toHaveBeenCalled();
-    expect(deliveries.findBy).not.toHaveBeenCalled();
+    expect(deliveries.save).not.toHaveBeenCalled();
+    expect(deliveries.findOne).not.toHaveBeenCalled();
   });
 
   it('includes AI insight in yesterday message when getInsight returns text', async () => {
