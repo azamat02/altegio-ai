@@ -26,7 +26,7 @@ export class MetricsService {
     if (capacityMin === 0) return null;
 
     const [booked] = await this.ds.query(
-      `SELECT COALESCE(SUM(seance_length), 0)::int AS booked_min
+      `SELECT COALESCE(SUM(seance_length), 0)::int / 60 AS booked_min
        FROM records
        WHERE tenant_id = $1 AND (datetime AT TIME ZONE $3)::date = $2 AND attendance = 1`,
       [tenantId, date, tz],
@@ -50,7 +50,7 @@ export class MetricsService {
     if (capacityMin === 0) return null;
 
     const [booked] = await this.ds.query(
-      `SELECT COALESCE(SUM(seance_length), 0)::int AS booked_min
+      `SELECT COALESCE(SUM(seance_length), 0)::int / 60 AS booked_min
        FROM records
        WHERE tenant_id = $1 AND (datetime AT TIME ZONE $3)::date = $2 AND attendance IN (0, 1)`,
       [tenantId, date, tz],
@@ -148,7 +148,7 @@ export class MetricsService {
       ),
       booked AS (
         SELECT s.category_id AS cat,
-               SUM(r.seance_length)::int AS b_min,
+               SUM(r.seance_length)::int / 60 AS b_min,
                COUNT(*)::int AS visits
         FROM records r
         JOIN services s

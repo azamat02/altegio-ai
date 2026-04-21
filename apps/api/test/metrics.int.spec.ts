@@ -38,11 +38,11 @@ describe('MetricsService.yesterdayUtilization (int)', () => {
       [tenantId],
     );
 
-    // 2 attended records with seance_length 200 + 300 = 500 minutes on 2026-04-19
+    // 2 attended records with seance_length 12000 + 18000 = 30000 seconds (200 + 300 minutes) on 2026-04-19
     await db.ds.query(
       `INSERT INTO records (tenant_id, altegio_record_id, altegio_staff_id, datetime, seance_length, cost, attendance, paid_full, is_online, deleted) VALUES
-       ($1, 101, 1, '2026-04-19 10:00+00', 200, 1000, 1, 1, false, false),
-       ($1, 102, 1, '2026-04-19 12:00+00', 300, 2000, 1, 1, false, false)`,
+       ($1, 101, 1, '2026-04-19 10:00+00', 12000, 1000, 1, 1, false, false),
+       ($1, 102, 1, '2026-04-19 12:00+00', 18000, 2000, 1, 1, false, false)`,
       [tenantId],
     );
   }, 60000);
@@ -260,14 +260,14 @@ describe('MetricsService.todayCategoryFillRates (int)', () => {
     );
 
     // Records on 2026-04-20:
-    // catA (svc 1001): 300 min booked → fillPct = round(300/600*100) = 50
-    // catB (svc 1002): 100 min booked → fillPct = round(100/200*100) = 50
+    // catA (svc 1001): 10800 + 7200 = 18000 sec = 300 min booked → fillPct = round(300/600*100) = 50
+    // catB (svc 1002): 6000 sec = 100 min booked → fillPct = round(100/200*100) = 50
     // catC (svc 1003): no records → fillPct = 0
     await db.ds.query(
       `INSERT INTO records (tenant_id, altegio_record_id, altegio_staff_id, altegio_service_id, datetime, seance_length, cost, attendance, paid_full, is_online, deleted) VALUES
-       ($1, 301, 1, 1001, '2026-04-20 09:00+00', 180, 1500, 1, 1, false, false),
-       ($1, 302, 1, 1001, '2026-04-20 10:00+00', 120, 1500, 0, 0, false, false),
-       ($1, 303, 1, 1002, '2026-04-20 11:00+00', 100, 3000, 1, 1, false, false)`,
+       ($1, 301, 1, 1001, '2026-04-20 09:00+00', 10800, 1500, 1, 1, false, false),
+       ($1, 302, 1, 1001, '2026-04-20 10:00+00', 7200, 1500, 0, 0, false, false),
+       ($1, 303, 1, 1002, '2026-04-20 11:00+00', 6000, 3000, 1, 1, false, false)`,
       [tenantId],
     );
   }, 60000);
@@ -379,13 +379,15 @@ describe('MetricsService.buildDailyReportData (int)', () => {
     );
 
     // Yesterday (2026-04-19): 2 completed + 1 cancelled
+    // seance_length in seconds: 120 min = 7200 s, 180 min = 10800 s, 60 min = 3600 s,
+    //                            90 min = 5400 s, 120 min = 7200 s
     await db.ds.query(
       `INSERT INTO records (tenant_id, altegio_record_id, altegio_staff_id, altegio_service_id, datetime, seance_length, cost, attendance, paid_full, is_online, deleted) VALUES
-       ($1, 401, 1, 2001, '2026-04-19 10:00+00', 120, 5000, 1, 1, false, false),
-       ($1, 402, 1, 2001, '2026-04-19 12:00+00', 180, 7000, 1, 1, false, false),
-       ($1, 403, 2, 2002, '2026-04-19 15:00+00', 60, 3000, -1, 0, false, false),
-       ($1, 404, 1, 2001, '2026-04-20 09:00+00', 90, 2000, 0, 0, false, false),
-       ($1, 405, 2, 2001, '2026-04-20 11:00+00', 120, 4000, 1, 1, false, false)`,
+       ($1, 401, 1, 2001, '2026-04-19 10:00+00', 7200, 5000, 1, 1, false, false),
+       ($1, 402, 1, 2001, '2026-04-19 12:00+00', 10800, 7000, 1, 1, false, false),
+       ($1, 403, 2, 2002, '2026-04-19 15:00+00', 3600, 3000, -1, 0, false, false),
+       ($1, 404, 1, 2001, '2026-04-20 09:00+00', 5400, 2000, 0, 0, false, false),
+       ($1, 405, 2, 2001, '2026-04-20 11:00+00', 7200, 4000, 1, 1, false, false)`,
       [tenantId],
     );
 
