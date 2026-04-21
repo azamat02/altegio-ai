@@ -55,7 +55,7 @@ describe('AiInsightService', () => {
       repo() as any,
       { enabled: true },
     );
-    expect(await svc.getInsight(baseFixture)).toMatch(/Загрузка/);
+    expect(await svc.getInsight('tenant-uuid-1', baseFixture)).toMatch(/Загрузка/);
   });
 
   it('returns null on timeout', async () => {
@@ -64,7 +64,7 @@ describe('AiInsightService', () => {
       repo() as any,
       { enabled: true, timeoutMs: 50 },
     );
-    expect(await svc.getInsight(baseFixture)).toBeNull();
+    expect(await svc.getInsight('tenant-uuid-1', baseFixture)).toBeNull();
   });
 
   it('rejects responses longer than 280 chars', async () => {
@@ -73,7 +73,7 @@ describe('AiInsightService', () => {
       repo() as any,
       { enabled: true },
     );
-    expect(await svc.getInsight(baseFixture)).toBeNull();
+    expect(await svc.getInsight('tenant-uuid-1', baseFixture)).toBeNull();
   });
 
   it('rejects responses with fabricated numbers', async () => {
@@ -82,7 +82,7 @@ describe('AiInsightService', () => {
       repo() as any,
       { enabled: true },
     );
-    expect(await svc.getInsight(baseFixture)).toBeNull();
+    expect(await svc.getInsight('tenant-uuid-1', baseFixture)).toBeNull();
   });
 
   it('returns null when disabled', async () => {
@@ -91,7 +91,7 @@ describe('AiInsightService', () => {
       repo() as any,
       { enabled: false },
     );
-    expect(await svc.getInsight(baseFixture)).toBeNull();
+    expect(await svc.getInsight('tenant-uuid-1', baseFixture)).toBeNull();
   });
 });
 

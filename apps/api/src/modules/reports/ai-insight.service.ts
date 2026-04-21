@@ -28,7 +28,7 @@ export class AiInsightService {
     private readonly opts: AiInsightOptions,
   ) {}
 
-  async getInsight(data: DailyReportData): Promise<string | null> {
+  async getInsight(tenantId: string, data: DailyReportData): Promise<string | null> {
     if (!this.opts.enabled) return null;
 
     const prompt = buildPrompt(data);
@@ -43,24 +43,25 @@ export class AiInsightService {
       const text = sanitize(raw);
 
       if (text.length > 280) {
-        await this.save(data, promptHash, text, Date.now() - started, 'validation_failed');
+        await this.save(tenantId, data, promptHash, text, Date.now() - started, 'validation_failed');
         return null;
       }
       if (hasForbiddenNumbers(text, data)) {
-        await this.save(data, promptHash, text, Date.now() - started, 'validation_failed');
+        await this.save(tenantId, data, promptHash, text, Date.now() - started, 'validation_failed');
         return null;
       }
-      await this.save(data, promptHash, text, Date.now() - started, 'ok');
+      await this.save(tenantId, data, promptHash, text, Date.now() - started, 'ok');
       return text;
     } catch (err: any) {
       const status: 'timeout' | 'api_error' = err?.message === 'timeout' ? 'timeout' : 'api_error';
-      await this.save(data, promptHash, null, Date.now() - started, status);
+      await this.save(tenantId, data, promptHash, null, Date.now() - started, status);
       this.log.warn(`AI insight ${status}: ${err?.message}`);
       return null;
     }
   }
 
   private async save(
+    tenantId: string,
     data: DailyReportData,
     promptHash: string,
     response: string | null,
@@ -69,7 +70,7 @@ export class AiInsightService {
   ) {
     try {
       await this.logs.save(this.logs.create({
-        tenantId: data.salonName, date: data.yesterday.date,
+        tenantId, date: data.yesterday.date,
         promptHash, response, ms, status,
       }));
     } catch {

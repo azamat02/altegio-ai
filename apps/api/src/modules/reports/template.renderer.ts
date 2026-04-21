@@ -142,11 +142,3 @@ export function renderTodayMessage(data: DailyReportData): string {
 
   return lines.join('\n');
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Legacy shim — kept because reports.service.ts still imports renderReport.
-// Tasks 22/23 will replace this once the service is updated.
-// ─────────────────────────────────────────────────────────────────────────────
-export function renderReport(data: DailyReportData): string {
-  return `${renderYesterdayMessage(data)}\n---8<---\n${renderTodayMessage(data)}`;
-}
