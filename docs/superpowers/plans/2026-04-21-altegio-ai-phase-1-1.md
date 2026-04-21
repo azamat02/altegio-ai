@@ -145,7 +145,7 @@ export class AddRecordResourceInstanceIds1700000007000 implements MigrationInter
   async up(q: QueryRunner): Promise<void> {
     await q.query(`
       ALTER TABLE records
-      ADD COLUMN resource_instance_ids int[] NOT NULL DEFAULT '{}'
+      ADD COLUMN resource_instance_ids bigint[] NOT NULL DEFAULT '{}'
     `);
     await q.query(`
       CREATE INDEX idx_records_resource_gin
