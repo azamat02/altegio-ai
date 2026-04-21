@@ -1,11 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import type { Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { createHash } from 'node:crypto';
 import Anthropic from '@anthropic-ai/sdk';
 import Bottleneck from 'bottleneck';
 import { AiInsightLogEntity } from './entities/ai-insight-log.entity';
-import type { DailyReportData } from '@altegio/shared';
+import { DailyReportData } from '@altegio/shared';
 
 export interface IAnthropicAdapter {
   generate(prompt: string, model: string): Promise<string>;

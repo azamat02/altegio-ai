@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule, getRepositoryToken } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bullmq';
-import type { Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { MetricsModule } from '../metrics/metrics.module';
 import { ReportsService } from './reports.service';
 import { ReportsProcessor } from './reports.processor';
-import type { IAnthropicAdapter } from './ai-insight.service';
+import { IAnthropicAdapter } from './ai-insight.service';
 import { AiInsightService, AnthropicAdapter } from './ai-insight.service';
 import { AiInsightLogEntity } from './entities/ai-insight-log.entity';
 import { ReportDeliveryEntity } from './entities/report-delivery.entity';

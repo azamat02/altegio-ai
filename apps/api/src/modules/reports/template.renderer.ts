@@ -1,4 +1,4 @@
-import type { DailyReportData } from '@altegio/shared';
+import { DailyReportData } from '@altegio/shared';
 
 const WEEKDAYS = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
 const MONTHS = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];

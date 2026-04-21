@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import type { AltegioClient } from '../altegio.client';
-import type { AltegioAuthContext } from '../types';
-import type { AltegioServiceDto } from '../dto/service.dto';
+import { AltegioClient } from '../altegio.client';
+import { AltegioAuthContext } from '../types';
+import { AltegioServiceDto } from '../dto/service.dto';
 
 @Injectable()
 export class ServicesEndpoint {

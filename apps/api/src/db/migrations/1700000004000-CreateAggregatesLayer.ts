@@ -1,4 +1,4 @@
-import type { MigrationInterface, QueryRunner } from 'typeorm';
+import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class CreateAggregatesLayer1700000004000 implements MigrationInterface {
   async up(qr: QueryRunner): Promise<void> {

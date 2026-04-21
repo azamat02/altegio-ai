@@ -1,4 +1,4 @@
-import type { MigrationInterface, QueryRunner } from 'typeorm';
+import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class CreateInfraTables1700000005000 implements MigrationInterface {
   async up(qr: QueryRunner): Promise<void> {

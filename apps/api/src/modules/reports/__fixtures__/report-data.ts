@@ -1,4 +1,4 @@
-import type { DailyReportData } from '@altegio/shared';
+import { DailyReportData } from '@altegio/shared';
 
 export const baseFixture: DailyReportData = {
   tenant: { id: 't', salonName: 'Салон №1', timezone: 'Asia/Almaty' },

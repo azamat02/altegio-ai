@@ -1,8 +1,8 @@
-import type { AxiosInstance, AxiosRequestConfig } from 'axios';
+import { AxiosInstance, AxiosRequestConfig } from 'axios';
 import axios from 'axios';
 import axiosRetry from 'axios-retry';
 import Bottleneck from 'bottleneck';
-import type { AltegioAuthContext } from './types';
+import { AltegioAuthContext } from './types';
 
 export function buildAuthHeader(auth: AltegioAuthContext): string {
   let v = `Bearer ${auth.partnerToken}`;

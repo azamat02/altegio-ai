@@ -1,4 +1,4 @@
-import type { TestDb } from './helpers/test-db';
+import { TestDb } from './helpers/test-db';
 import { startTestDb } from './helpers/test-db';
 import { TenantEntity } from '../src/modules/tenants/tenant.entity';
 import { TenantsService } from '../src/modules/tenants/tenants.service';

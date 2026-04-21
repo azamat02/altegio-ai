@@ -1,14 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import type { Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { AltegioRawRecordEntity } from './entities/altegio-raw-record.entity';
 import { AltegioRawClientEntity } from './entities/altegio-raw-client.entity';
 import { AltegioRawStaffEntity } from './entities/altegio-raw-staff.entity';
 import { AltegioRawServiceEntity } from './entities/altegio-raw-service.entity';
-import type { AltegioRecordDto } from '../altegio/dto/record.dto';
-import type { AltegioClientDto } from '../altegio/dto/client.dto';
-import type { AltegioStaffDto } from '../altegio/dto/staff.dto';
-import type { AltegioServiceDto } from '../altegio/dto/service.dto';
+import { AltegioRecordDto } from '../altegio/dto/record.dto';
+import { AltegioClientDto } from '../altegio/dto/client.dto';
+import { AltegioStaffDto } from '../altegio/dto/staff.dto';
+import { AltegioServiceDto } from '../altegio/dto/service.dto';
 
 @Injectable()
 export class RawWriterService {

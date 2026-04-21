@@ -1,6 +1,6 @@
 import { renderReport, buildAttention } from './template.renderer';
 import { baseFixture as base } from './__fixtures__/report-data';
-import type { DailyReportData } from '@altegio/shared';
+import { DailyReportData } from '@altegio/shared';
 
 describe('renderReport', () => {
   it('renders the happy-path template with all sections', () => {

@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
-import type { DataSource } from 'typeorm';
-import type { TenantsService } from '../tenants/tenants.service';
-import type { DailyReportData } from '@altegio/shared';
+import { DataSource } from 'typeorm';
+import { TenantsService } from '../tenants/tenants.service';
+import { DailyReportData } from '@altegio/shared';
 
 @Injectable()
 export class MetricsService {

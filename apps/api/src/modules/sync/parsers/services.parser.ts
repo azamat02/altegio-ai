@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { AltegioServiceDto } from '../../altegio/dto/service.dto';
+import { AltegioServiceDto } from '../../altegio/dto/service.dto';
 
 export interface ServiceRow {
   tenantId: string;

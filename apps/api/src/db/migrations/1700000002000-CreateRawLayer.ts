@@ -1,4 +1,4 @@
-import type { MigrationInterface, QueryRunner } from 'typeorm';
+import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class CreateRawLayer1700000002000 implements MigrationInterface {
   async up(qr: QueryRunner): Promise<void> {

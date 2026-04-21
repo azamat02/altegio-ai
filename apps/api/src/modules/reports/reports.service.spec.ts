@@ -1,5 +1,5 @@
 import { ReportsService } from './reports.service';
-import type { DailyReportData } from '@altegio/shared';
+import { DailyReportData } from '@altegio/shared';
 
 const data: DailyReportData = {
   tenant: { id: 't', salonName: 'S', timezone: 'UTC' },

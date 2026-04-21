@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { InjectQueue } from '@nestjs/bullmq';
-import type { Queue } from 'bullmq';
-import type { TenantsService } from '../tenants/tenants.service';
+import { Queue } from 'bullmq';
+import { TenantsService } from '../tenants/tenants.service';
 
 @Injectable()
 export class SchedulerService {

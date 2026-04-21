@@ -1,5 +1,5 @@
 import { RecordsParser } from './records.parser';
-import type { AltegioRecordDto } from '../../altegio/dto/record.dto';
+import { AltegioRecordDto } from '../../altegio/dto/record.dto';
 
 describe('RecordsParser', () => {
   const parser = new RecordsParser();

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import type { AltegioClient } from '../altegio.client';
-import type { AltegioAuthContext } from '../types';
-import type { AltegioRecordDto } from '../dto/record.dto';
+import { AltegioClient } from '../altegio.client';
+import { AltegioAuthContext } from '../types';
+import { AltegioRecordDto } from '../dto/record.dto';
 
 export interface FetchRecordsParams {
   start: string;

@@ -1,7 +1,7 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
-import type { Job } from 'bullmq';
-import type { SyncService } from './sync.service';
+import { Job } from 'bullmq';
+import { SyncService } from './sync.service';
 
 export interface SyncJobData {
   tenantId: string;

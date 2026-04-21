@@ -10,7 +10,10 @@ export default tseslint.config(
   {
     rules: {
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
-      '@typescript-eslint/consistent-type-imports': 'error',
+      // consistent-type-imports is unsafe for NestJS DI: converting a class
+      // used only as a constructor param type to `import type` strips the
+      // runtime symbol and breaks reflection metadata. Disabled entirely.
+      '@typescript-eslint/consistent-type-imports': 'off',
       '@typescript-eslint/no-explicit-any': 'warn',
       // '@typescript-eslint/no-floating-promises': 'error', // re-enable in Task 3 when tsconfig covers source files
     },
