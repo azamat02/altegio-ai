@@ -1,7 +1,7 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
-import { Job } from 'bullmq';
-import { ReportsService } from './reports.service';
+import type { Job } from 'bullmq';
+import type { ReportsService } from './reports.service';
 
 export interface ReportJobData {
   tenantId: string;

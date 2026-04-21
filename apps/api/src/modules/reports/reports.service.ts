@@ -1,11 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { MetricsService } from '../metrics/metrics.service';
+import type { Repository } from 'typeorm';
+import type { MetricsService } from '../metrics/metrics.service';
 import { renderReport } from './template.renderer';
-import { AiInsightService } from './ai-insight.service';
-import { TelegramService } from '../telegram/telegram.service';
-import { TenantsService } from '../tenants/tenants.service';
+import type { AiInsightService } from './ai-insight.service';
+import type { TelegramService } from '../telegram/telegram.service';
+import type { TenantsService } from '../tenants/tenants.service';
 import { ReportDeliveryEntity } from './entities/report-delivery.entity';
 
 @Injectable()

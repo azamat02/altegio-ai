@@ -11,6 +11,7 @@ export default tseslint.config(
     rules: {
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
       '@typescript-eslint/consistent-type-imports': 'error',
+      '@typescript-eslint/no-explicit-any': 'warn',
       // '@typescript-eslint/no-floating-promises': 'error', // re-enable in Task 3 when tsconfig covers source files
     },
     // languageOptions with projectService removed — requires a tsconfig.json covering all linted files.

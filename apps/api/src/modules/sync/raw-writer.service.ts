@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import type { Repository } from 'typeorm';
 import { AltegioRawRecordEntity } from './entities/altegio-raw-record.entity';
 import { AltegioRawClientEntity } from './entities/altegio-raw-client.entity';
 import { AltegioRawStaffEntity } from './entities/altegio-raw-staff.entity';

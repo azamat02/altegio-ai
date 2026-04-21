@@ -1,4 +1,5 @@
-import { startTestDb, TestDb } from './helpers/test-db';
+import type { TestDb } from './helpers/test-db';
+import { startTestDb } from './helpers/test-db';
 import { TenantEntity } from '../src/modules/tenants/tenant.entity';
 import { TenantsService } from '../src/modules/tenants/tenants.service';
 import { TokenCipher } from '../src/modules/tenants/token-cipher.service';

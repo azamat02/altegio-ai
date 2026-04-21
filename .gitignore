@@ -9,4 +9,5 @@ coverage
 .vercel
 .turbo
 .nyc_output
-demo-site          # nested independent repo, not tracked here
+# nested independent repo, not tracked here
+demo-site/

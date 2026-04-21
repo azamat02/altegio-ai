@@ -1,4 +1,5 @@
-import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
+import type { AxiosInstance, AxiosRequestConfig } from 'axios';
+import axios from 'axios';
 import axiosRetry from 'axios-retry';
 import Bottleneck from 'bottleneck';
 import type { AltegioAuthContext } from './types';

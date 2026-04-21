@@ -1,4 +1,5 @@
-import { TenantsService, CreateTenantInput } from './tenants.service';
+import type { CreateTenantInput } from './tenants.service';
+import { TenantsService } from './tenants.service';
 import { TokenCipher } from './token-cipher.service';
 import type { Repository } from 'typeorm';
 import type { TenantEntity } from './tenant.entity';

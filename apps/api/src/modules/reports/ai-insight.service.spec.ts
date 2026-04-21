@@ -1,4 +1,5 @@
-import { AiInsightService, IAnthropicAdapter } from './ai-insight.service';
+import type { IAnthropicAdapter } from './ai-insight.service';
+import { AiInsightService } from './ai-insight.service';
 import type { DailyReportData } from '@altegio/shared';
 
 function fakeAdapter(response: string | Error, delayMs = 0): IAnthropicAdapter {
