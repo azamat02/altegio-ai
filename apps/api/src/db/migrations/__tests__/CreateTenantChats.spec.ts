@@ -42,4 +42,30 @@ describe('CreateTenantChats1700000011000', () => {
     `);
     expect(pk.map((r: any) => r.attname).sort()).toEqual(['chat_id', 'tenant_id']);
   });
+
+  it('backfills tenant_chats from tenants.telegram_chat_id on migration up', async () => {
+    // Roll back past migration 11 (undo 14, 13, 12, 11).
+    await ds.undoLastMigration();
+    await ds.undoLastMigration();
+    await ds.undoLastMigration();
+    await ds.undoLastMigration();
+
+    // Seed a tenant with telegram_chat_id set.
+    await ds.query(`
+      INSERT INTO tenants (salon_name, location_id, altegio_token_encrypted, timezone, telegram_chat_id)
+      VALUES ('Test', 999999, decode('00', 'hex'), 'Asia/Almaty', 123456)
+    `);
+
+    // Re-run pending migrations (11 through 14).
+    await ds.runMigrations();
+
+    // Migration 11 must have backfilled tenant_chats.
+    const rows = await ds.query(`
+      SELECT chat_id, role, subscribed FROM tenant_chats WHERE chat_id = 123456
+    `);
+    expect(rows.length).toBe(1);
+    expect(Number(rows[0].chat_id)).toBe(123456);
+    expect(rows[0].role).toBe('owner');
+    expect(rows[0].subscribed).toBe(true);
+  });
 });

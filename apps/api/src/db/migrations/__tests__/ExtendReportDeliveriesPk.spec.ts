@@ -45,4 +45,32 @@ describe('ExtendReportDeliveriesPk1700000014000', () => {
       'chat_id', 'date', 'message_kind', 'tenant_id',
     ]);
   });
+
+  it('backfills chat_id in report_deliveries from tenants.telegram_chat_id on migration up', async () => {
+    // Roll back migration 14 only (one undo).
+    await ds.undoLastMigration();
+
+    // Seed a tenant with telegram_chat_id and a report_deliveries row.
+    const tenantResult = await ds.query(`
+      INSERT INTO tenants (salon_name, location_id, altegio_token_encrypted, timezone, telegram_chat_id)
+      VALUES ('Test', 888888, decode('00', 'hex'), 'Asia/Almaty', 777777)
+      RETURNING id
+    `);
+    const tenantId: string = tenantResult[0].id;
+
+    await ds.query(`
+      INSERT INTO report_deliveries (tenant_id, date, message_kind, status)
+      VALUES ($1, '2024-01-01', 'yesterday', 'sent')
+    `, [tenantId]);
+
+    // Re-run migration 14.
+    await ds.runMigrations();
+
+    // chat_id must be backfilled from telegram_chat_id.
+    const rows = await ds.query(`
+      SELECT chat_id FROM report_deliveries WHERE tenant_id = $1
+    `, [tenantId]);
+    expect(rows.length).toBe(1);
+    expect(Number(rows[0].chat_id)).toBe(777777);
+  });
 });

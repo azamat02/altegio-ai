@@ -23,7 +23,8 @@ export class ExtendReportDeliveriesPk1700000014000 implements MigrationInterface
     await qr.query(`
       DELETE FROM report_deliveries rd
       USING tenants t
-      WHERE rd.tenant_id = t.id AND rd.chat_id <> t.telegram_chat_id
+      WHERE rd.tenant_id = t.id
+        AND rd.chat_id IS DISTINCT FROM t.telegram_chat_id
     `);
     await qr.query(`ALTER TABLE report_deliveries DROP CONSTRAINT IF EXISTS report_deliveries_pkey`);
     await qr.query(`
