@@ -41,10 +41,17 @@ if [ ! -f "$APP_DIR/.env" ]; then
   echo "==> Copied .env.example -> .env. Fill real secrets next."
 fi
 
+echo "==> Wiring certbot renewal hooks (symlinks to repo)..."
+mkdir -p /etc/letsencrypt/renewal-hooks/pre /etc/letsencrypt/renewal-hooks/post
+ln -sf "$APP_DIR/deploy/letsencrypt-hooks/pre/stop-nginx-container.sh" \
+  /etc/letsencrypt/renewal-hooks/pre/stop-nginx-container.sh
+ln -sf "$APP_DIR/deploy/letsencrypt-hooks/post/start-nginx-container.sh" \
+  /etc/letsencrypt/renewal-hooks/post/start-nginx-container.sh
+
 echo "==> Done. Next steps:"
 echo "  1. Add the deploy key above to GitHub repo Deploy keys (read-only is enough)."
 echo "  2. nano $APP_DIR/.env  # fill tokens, encryption key, GHCR_OWNER, etc."
-echo "  3. docker login ghcr.io -u azamat02 -p <PAT_with_read:packages>"
+echo "  3. ufw allow 80/tcp && ufw allow 443/tcp   # open HTTP/HTTPS"
 echo "  4. Issue TLS cert (one-time):"
 echo "       certbot certonly --standalone -d altegio.tolemflow.kz -m ${CERT_EMAIL:-azamattolegenov1@gmail.com} --agree-tos --non-interactive"
 echo "  5. cd $APP_DIR && ./deploy/deploy.sh"
