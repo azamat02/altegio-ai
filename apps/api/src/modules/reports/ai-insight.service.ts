@@ -69,7 +69,7 @@ export class AiInsightService {
   ) {
     try {
       await this.logs.save(this.logs.create({
-        tenantId: data.tenant.id, date: data.date,
+        tenantId: data.salonName, date: data.yesterday.date,
         promptHash, response, ms, status,
       }));
     } catch {
@@ -78,20 +78,79 @@ export class AiInsightService {
   }
 }
 
+// ──────────────────────────────────────────────────────────────────────────────
+// Prompt builder
+// ──────────────────────────────────────────────────────────────────────────────
+
+const SYSTEM_INSTRUCTION = [
+  'Ты анализируешь вчерашние цифры салона красоты.',
+  'Владелец получит это как одно предложение утром в Telegram.',
+  'Только интерпретация переданных цифр, никаких советов и прогнозов, ничего не выдумывай.',
+  '1-2 предложения максимум.',
+].join(' ');
+
 export function buildPrompt(data: DailyReportData): string {
-  return [
-    'Ты — аналитик салона красоты. Тебе дают факты за вчера.',
-    'Твоя задача — найти ОДИН самый важный инсайт в 1-2 предложениях на русском.',
-    'Правила:',
-    '- Говори только о переданных фактах. НЕ ПРИДУМЫВАЙ ЦИФРЫ.',
-    '- Не повторяй цифры, которые уже есть в отчёте (они будут в шаблоне).',
-    '- Если есть аномалия — называй её и возможную причину.',
-    '- Если всё нормально — коротко подтверди тренд.',
-    '- Максимум 280 символов. Без эмодзи.',
-    '',
-    'ФАКТЫ:',
-    JSON.stringify(data, null, 2),
-  ].join('\n');
+  const { yesterday: y, today: t } = data;
+  const lines: string[] = [];
+
+  lines.push(SYSTEM_INSTRUCTION);
+  lines.push('');
+  lines.push('ДАННЫЕ:');
+
+  lines.push(`Салон: ${data.salonName} (${data.timezone})`);
+  lines.push(`Дата: ${y.date}`);
+  lines.push(`Выручка вчера: ${rub(y.revenue)}`);
+
+  if (y.avg7 !== null) lines.push(`Средняя выручка за 7 дней: ${rub(y.avg7)}`);
+  if (y.deltaPct !== null) lines.push(`Дельта к 7-дневной средней: ${pct(y.deltaPct)}`);
+
+  lines.push(`Визитов (состоялось): ${y.came}`);
+  lines.push(`Визитов (отменено): ${y.cancelled}`);
+
+  if (y.avgCheck !== null) lines.push(`Средний чек: ${rub(y.avgCheck)}`);
+
+  if (y.utilizationPct !== null) lines.push(`Загрузка вчера: ${pct(y.utilizationPct)}`);
+
+  if (y.monthlyGoalPct !== null) {
+    lines.push(`План месяца: ${pct(y.monthlyGoalPct)} выполнено`);
+    if (y.monthlyGoalMtd !== null) lines.push(`  — накоплено MTD: ${rub(y.monthlyGoalMtd)}`);
+    if (y.monthlyGoalTarget !== null) lines.push(`  — цель месяца: ${rub(y.monthlyGoalTarget)}`);
+  }
+
+  if (y.topStaff.length > 0) {
+    lines.push('Топ мастера:');
+    for (const s of y.topStaff) {
+      lines.push(`  ${s.name}: ${rub(s.revenue)}, ${s.visits} визит(а)`);
+    }
+  }
+
+  lines.push('');
+  lines.push(`Сегодня (${t.date}):`);
+  lines.push(`  Запись: ${t.scheduled} визитов`);
+  if (t.utilizationPct !== null) lines.push(`  Загрузка на сегодня: ${pct(t.utilizationPct)}`);
+
+  if (t.categories.length > 0) {
+    lines.push('  Категории (топ):');
+    for (const c of t.categories) {
+      lines.push(`    ${c.name}: заполнение ${pct(c.fillPct)}, ${c.visits} визит(а)`);
+    }
+  }
+
+  return lines.join('\n');
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Helpers
+// ──────────────────────────────────────────────────────────────────────────────
+
+/** Format as currency with thin-space thousands separator + ₸ */
+function rub(n: number): string {
+  return n.toLocaleString('ru-RU') + '\u202f₸';
+}
+
+/** Format as percentage */
+function pct(n: number): string {
+  return n + '%';
 }
 
 function sanitize(text: string): string {
@@ -116,14 +175,18 @@ function hasForbiddenNumbers(text: string, data: DailyReportData): boolean {
 
 function collectAllowedNumbers(d: DailyReportData): number[] {
   const out: number[] = [];
-  const push = (n: number) => out.push(Math.round(n));
-  push(d.yesterday.revenue); push(d.yesterday.visitsCompleted); push(d.yesterday.visitsCancelled);
-  push(d.yesterday.avgCheck); push(d.yesterday.cancellationLoss);
-  push(Math.round(d.yesterday.cancelRate * 100));
-  push(Math.round(d.baseline7d.avgRevenue)); push(Math.round(d.baseline7d.avgVisits));
-  push(d.today.bookedCount); push(Math.round(d.today.occupancyPct));
-  d.topStaff.forEach((s) => { push(s.revenue); push(s.visits); });
-  d.cancelClusters.forEach((c) => { push(c.hour); push(c.count); });
+  const push = (n: number | null) => { if (n !== null) out.push(Math.round(n)); };
+
+  const y = d.yesterday;
+  push(y.revenue); push(y.came); push(y.cancelled); push(y.avgCheck);
+  push(y.avg7); push(y.deltaPct); push(y.utilizationPct);
+  push(y.monthlyGoalPct); push(y.monthlyGoalTarget); push(y.monthlyGoalMtd);
+  y.topStaff.forEach((s) => { push(s.revenue); push(s.visits); });
+
+  const t = d.today;
+  push(t.scheduled); push(t.utilizationPct);
+  t.categories.forEach((c) => { push(c.fillPct); push(c.visits); });
+
   return out;
 }
 

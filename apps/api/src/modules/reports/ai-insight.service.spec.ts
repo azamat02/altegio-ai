@@ -1,6 +1,6 @@
-import { IAnthropicAdapter } from './ai-insight.service';
-import { AiInsightService } from './ai-insight.service';
+import { IAnthropicAdapter, AiInsightService, buildPrompt } from './ai-insight.service';
 import { DailyReportData } from '@altegio/shared';
+import { baseFixture } from './__fixtures__/report-data';
 
 function fakeAdapter(response: string | Error, delayMs = 0): IAnthropicAdapter {
   return {
@@ -21,24 +21,41 @@ function repo() {
   } as any;
 }
 
-const sample: DailyReportData = {
-  tenant: { id: 't', salonName: 'Test', timezone: 'Asia/Almaty' },
-  date: '2026-04-19',
-  yesterday: { revenue: 100000, visitsCompleted: 10, visitsCancelled: 3, avgCheck: 10000, cancelRate: 0.23, cancellationLoss: 30000 },
-  baseline7d: { avgRevenue: 120000, avgVisits: 12, avgCancelRate: 0.15 },
-  topStaff: [], strugglingStaff: [],
-  today: { bookedCount: 5, occupancyPct: 40, emptySlots: [] },
-  cancelClusters: [],
+/** Minimal fixture: nullable fields all null, so we can test null-skipping too */
+const minimalFixture: DailyReportData = {
+  salonName: 'Test Salon',
+  timezone: 'Asia/Almaty',
+  yesterday: {
+    date: '2026-04-19',
+    revenue: 100_000,
+    avg7: null,
+    deltaPct: null,
+    came: 10,
+    cancelled: 3,
+    avgCheck: null,
+    utilizationPct: null,
+    monthlyGoalPct: null,
+    monthlyGoalTarget: null,
+    monthlyGoalMtd: null,
+    topStaff: [],
+    aiInsight: null,
+  },
+  today: {
+    date: '2026-04-20',
+    scheduled: 5,
+    utilizationPct: null,
+    categories: [],
+  },
 };
 
 describe('AiInsightService', () => {
   it('returns text when model produces short plausible insight', async () => {
     const svc = new AiInsightService(
-      fakeAdapter('Отмены выросли до 23 процентов.'),
+      fakeAdapter('Загрузка вчера составила 64 процента.'),
       repo() as any,
       { enabled: true },
     );
-    expect(await svc.getInsight(sample)).toMatch(/Отмены/);
+    expect(await svc.getInsight(baseFixture)).toMatch(/Загрузка/);
   });
 
   it('returns null on timeout', async () => {
@@ -47,7 +64,7 @@ describe('AiInsightService', () => {
       repo() as any,
       { enabled: true, timeoutMs: 50 },
     );
-    expect(await svc.getInsight(sample)).toBeNull();
+    expect(await svc.getInsight(baseFixture)).toBeNull();
   });
 
   it('rejects responses longer than 280 chars', async () => {
@@ -56,7 +73,7 @@ describe('AiInsightService', () => {
       repo() as any,
       { enabled: true },
     );
-    expect(await svc.getInsight(sample)).toBeNull();
+    expect(await svc.getInsight(baseFixture)).toBeNull();
   });
 
   it('rejects responses with fabricated numbers', async () => {
@@ -65,7 +82,7 @@ describe('AiInsightService', () => {
       repo() as any,
       { enabled: true },
     );
-    expect(await svc.getInsight(sample)).toBeNull();
+    expect(await svc.getInsight(baseFixture)).toBeNull();
   });
 
   it('returns null when disabled', async () => {
@@ -74,6 +91,43 @@ describe('AiInsightService', () => {
       repo() as any,
       { enabled: false },
     );
-    expect(await svc.getInsight(sample)).toBeNull();
+    expect(await svc.getInsight(baseFixture)).toBeNull();
+  });
+});
+
+describe('buildPrompt', () => {
+  it('includes Загрузка and План месяца when utilizationPct and monthlyGoalPct are non-null', () => {
+    const prompt = buildPrompt(baseFixture);
+    expect(prompt).toContain('Загрузка вчера');
+    expect(prompt).toContain('План месяца');
+  });
+
+  it('includes today utilization when non-null', () => {
+    const prompt = buildPrompt(baseFixture);
+    expect(prompt).toContain('Загрузка на сегодня');
+  });
+
+  it('includes today categories when present', () => {
+    const prompt = buildPrompt(baseFixture);
+    expect(prompt).toContain('Маникюр');
+    expect(prompt).toContain('Аппараты');
+  });
+
+  it('skips Загрузка and План месяца lines when those fields are null', () => {
+    const prompt = buildPrompt(minimalFixture);
+    expect(prompt).not.toContain('Загрузка вчера');
+    expect(prompt).not.toContain('План месяца');
+  });
+
+  it('includes salon name and timezone', () => {
+    const prompt = buildPrompt(baseFixture);
+    expect(prompt).toContain('Салон №1, Алматы');
+    expect(prompt).toContain('Asia/Almaty');
+  });
+
+  it('includes top staff entries', () => {
+    const prompt = buildPrompt(baseFixture);
+    expect(prompt).toContain('Оксана Гарифзянова');
+    expect(prompt).toContain('Гульнара');
   });
 });
