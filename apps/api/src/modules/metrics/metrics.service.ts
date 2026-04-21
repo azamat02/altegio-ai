@@ -12,155 +12,10 @@ export class MetricsService {
   ) {}
 
   // ---------------------------------------------------------------------------
-  // Legacy method — kept for backward compat with existing Phase 1 reports
+  // Task 17 — yesterdayUtilization (attendance = 1: completed visits only)
   // ---------------------------------------------------------------------------
 
-  async getDailyReportData(tenantId: string, reportDate: string): Promise<any> {
-    const tenant = await this.tenants.findById(tenantId);
-    if (!tenant) throw new Error(`Tenant ${tenantId} not found`);
-
-    const yesterday = this.subtractDays(reportDate, 1);
-    const weekStart = this.subtractDays(reportDate, 8);
-    const weekEnd = this.subtractDays(reportDate, 2);
-
-    const [yStats] = await this.ds.query(
-      `SELECT revenue_total, visits_completed, visits_cancelled, avg_check, occupancy_pct
-       FROM daily_metrics WHERE tenant_id = $1 AND date = $2`,
-      [tenantId, yesterday],
-    );
-
-    const [baseline] = await this.ds.query(
-      `SELECT
-        COALESCE(AVG(revenue_total), 0)::numeric       AS avg_revenue,
-        COALESCE(AVG(visits_completed), 0)::numeric    AS avg_visits,
-        COALESCE(
-          AVG(visits_cancelled::numeric
-            / NULLIF(visits_completed + visits_cancelled, 0)),
-          0
-        )::numeric                                    AS avg_cancel_rate
-       FROM daily_metrics
-       WHERE tenant_id = $1 AND date BETWEEN $2 AND $3`,
-      [tenantId, weekStart, weekEnd],
-    );
-
-    const topStaff = await this.ds.query(
-      `SELECT sd.altegio_staff_id AS staff_id, s.name, sd.revenue::numeric AS revenue, sd.visits
-       FROM staff_daily sd
-       JOIN staff s ON s.tenant_id = sd.tenant_id AND s.altegio_staff_id = sd.altegio_staff_id
-       WHERE sd.tenant_id = $1 AND sd.date = $2 AND sd.visits > 0
-       ORDER BY sd.revenue DESC LIMIT 3`,
-      [tenantId, yesterday],
-    );
-
-    const strugglingStaff = await this.ds.query(
-      `WITH w AS (
-         SELECT altegio_staff_id, AVG(revenue::numeric) AS avg_7d
-         FROM staff_daily
-         WHERE tenant_id = $1 AND date BETWEEN $2 AND $3
-         GROUP BY altegio_staff_id
-       ),
-       yest AS (
-         SELECT altegio_staff_id, revenue::numeric AS rev
-         FROM staff_daily WHERE tenant_id = $1 AND date = $4
-       ),
-       prev AS (
-         SELECT altegio_staff_id, revenue::numeric AS rev
-         FROM staff_daily WHERE tenant_id = $1 AND date = $5
-       )
-       SELECT y.altegio_staff_id AS staff_id, s.name,
-              2 AS consecutive_days_below_avg
-       FROM yest y
-       JOIN w ON w.altegio_staff_id = y.altegio_staff_id
-       LEFT JOIN prev p ON p.altegio_staff_id = y.altegio_staff_id
-       JOIN staff s ON s.tenant_id = $1 AND s.altegio_staff_id = y.altegio_staff_id
-       WHERE y.rev < w.avg_7d * 0.6
-         AND COALESCE(p.rev, 0) < w.avg_7d * 0.6
-       LIMIT 2`,
-      [tenantId, weekStart, weekEnd, yesterday, this.subtractDays(yesterday, 1)],
-    );
-
-    const [cancelLoss] = await this.ds.query(
-      `SELECT COALESCE(SUM(cost), 0)::numeric AS loss
-       FROM records
-       WHERE tenant_id = $1 AND attendance = -1 AND NOT deleted
-         AND (datetime AT TIME ZONE $2)::date = $3`,
-      [tenantId, tenant.timezone, yesterday],
-    );
-
-    const [todayLoad] = await this.ds.query(
-      `SELECT
-         COUNT(*) FILTER (WHERE NOT deleted) AS booked,
-         COALESCE(SUM(seance_length) FILTER (WHERE NOT deleted), 0) AS total_seconds
-       FROM records
-       WHERE tenant_id = $1 AND (datetime AT TIME ZONE $2)::date = $3`,
-      [tenantId, tenant.timezone, reportDate],
-    );
-
-    const [staffCountRow] = await this.ds.query(
-      `SELECT COUNT(*)::int AS n FROM staff WHERE tenant_id = $1 AND NOT fired AND bookable`,
-      [tenantId],
-    );
-    const staffCount = staffCountRow.n || 1;
-    const workingSeconds = tenant.workingHoursPerDay * 3600;
-    const occToday = Math.min(100, (Number(todayLoad.total_seconds) / (staffCount * workingSeconds)) * 100);
-
-    const emptySlots = await this.computeEmptySlots(tenantId, reportDate, tenant.timezone);
-
-    const clusters = await this.ds.query(
-      `SELECT s.name AS staff_name, EXTRACT(HOUR FROM r.datetime AT TIME ZONE $2)::int AS hour, COUNT(*)::int AS count
-       FROM records r
-       JOIN staff s ON s.tenant_id = r.tenant_id AND s.altegio_staff_id = r.altegio_staff_id
-       WHERE r.tenant_id = $1 AND r.attendance = -1 AND NOT r.deleted
-         AND (r.datetime AT TIME ZONE $2)::date = $3
-       GROUP BY s.name, hour
-       ORDER BY count DESC LIMIT 3`,
-      [tenantId, tenant.timezone, yesterday],
-    );
-
-    const completed = yStats ? Number(yStats.visits_completed) : 0;
-    const cancelled = yStats ? Number(yStats.visits_cancelled) : 0;
-    const cancelRate = completed + cancelled > 0 ? cancelled / (completed + cancelled) : 0;
-
-    return {
-      tenant: { id: tenant.id, salonName: tenant.salonName, timezone: tenant.timezone },
-      date: yesterday,
-      yesterday: {
-        revenue: yStats ? Number(yStats.revenue_total) : 0,
-        visitsCompleted: completed,
-        visitsCancelled: cancelled,
-        avgCheck: yStats ? Number(yStats.avg_check) : 0,
-        cancelRate,
-        cancellationLoss: Number(cancelLoss.loss),
-      },
-      baseline7d: {
-        avgRevenue: Number(baseline.avg_revenue),
-        avgVisits: Number(baseline.avg_visits),
-        avgCancelRate: Number(baseline.avg_cancel_rate),
-      },
-      topStaff: topStaff.map((r: any) => ({
-        staffId: Number(r.staff_id), name: r.name,
-        revenue: Number(r.revenue), visits: Number(r.visits),
-      })),
-      strugglingStaff: strugglingStaff.map((r: any) => ({
-        staffId: Number(r.staff_id), name: r.name,
-        consecutiveDaysBelowAvg: Number(r.consecutive_days_below_avg),
-      })),
-      today: {
-        bookedCount: Number(todayLoad.booked),
-        occupancyPct: Math.round(occToday * 10) / 10,
-        emptySlots,
-      },
-      cancelClusters: clusters.map((r: any) => ({
-        staffName: r.staff_name, hour: Number(r.hour), count: Number(r.count),
-      })),
-    };
-  }
-
-  // ---------------------------------------------------------------------------
-  // Task 17 — yesterdayUtilization
-  // ---------------------------------------------------------------------------
-
-  async yesterdayUtilization(tenantId: string, date: string): Promise<number | null> {
+  async yesterdayUtilization(tenantId: string, date: string, tz: string): Promise<number | null> {
     const [cap] = await this.ds.query(
       `SELECT COALESCE(SUM(working_minutes), 0)::int AS capacity_min
        FROM resource_schedule
@@ -173,23 +28,59 @@ export class MetricsService {
     const [booked] = await this.ds.query(
       `SELECT COALESCE(SUM(seance_length), 0)::int AS booked_min
        FROM records
-       WHERE tenant_id = $1 AND datetime::date = $2 AND attendance = 1`,
-      [tenantId, date],
+       WHERE tenant_id = $1 AND (datetime AT TIME ZONE $3)::date = $2 AND attendance = 1`,
+      [tenantId, date, tz],
     );
     const bookedMin = Number(booked.booked_min);
     return Math.round((bookedMin / capacityMin) * 100);
   }
 
   // ---------------------------------------------------------------------------
-  // Task 18 — monthlyGoal
+  // Task 20 (C3 fix) — todayUtilization (attendance IN (0,1): including scheduled)
+  // ---------------------------------------------------------------------------
+
+  async todayUtilization(tenantId: string, date: string, tz: string): Promise<number | null> {
+    const [cap] = await this.ds.query(
+      `SELECT COALESCE(SUM(working_minutes), 0)::int AS capacity_min
+       FROM resource_schedule
+       WHERE tenant_id = $1 AND date = $2`,
+      [tenantId, date],
+    );
+    const capacityMin = Number(cap.capacity_min);
+    if (capacityMin === 0) return null;
+
+    const [booked] = await this.ds.query(
+      `SELECT COALESCE(SUM(seance_length), 0)::int AS booked_min
+       FROM records
+       WHERE tenant_id = $1 AND (datetime AT TIME ZONE $3)::date = $2 AND attendance IN (0, 1)`,
+      [tenantId, date, tz],
+    );
+    const bookedMin = Number(booked.booked_min);
+    return Math.round((bookedMin / capacityMin) * 100);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Task 18 — monthlyGoal (I6: 60-day history gate + NaN/Infinity guard)
   // ---------------------------------------------------------------------------
 
   async monthlyGoal(
     tenantId: string,
     referenceDate: string,
+    tz: string,
   ): Promise<{ target: number; mtd: number; pct: number } | null> {
-    // referenceDate's month start
+    // Gate: earliest record must be at least 60 days before referenceDate
     const refD = new Date(referenceDate + 'T00:00:00Z');
+    const cutoff = new Date(refD.getTime() - 60 * 86_400_000);
+    const cutoffStr = cutoff.toISOString().slice(0, 10);
+
+    const [earliest] = await this.ds.query(
+      `SELECT MIN((datetime AT TIME ZONE $2)::date)::text AS first_day
+       FROM records
+       WHERE tenant_id = $1`,
+      [tenantId, tz],
+    );
+    if (!earliest.first_day || earliest.first_day > cutoffStr) return null;
+
     const refYear = refD.getUTCFullYear();
     const refMonth = refD.getUTCMonth() + 1; // 1-based
 
@@ -200,34 +91,20 @@ export class MetricsService {
       let m = refMonth - i;
       if (m <= 0) { m += 12; y -= 1; }
       const start = `${y}-${String(m).padStart(2, '0')}-01`;
-      const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate(); // day 0 of next month = last day of m
+      const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate();
       const end = `${y}-${String(m).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
       prevMonths.push({ start, end });
     }
 
-    // Check how many of those months have any records
-    const historyCounts = await Promise.all(
-      prevMonths.map(({ start, end }) =>
-        this.ds.query(
-          `SELECT COUNT(*)::int AS cnt FROM records
-           WHERE tenant_id = $1 AND attendance = 1
-             AND datetime::date BETWEEN $2 AND $3`,
-          [tenantId, start, end],
-        ),
-      ),
-    );
-    const fullMonths = historyCounts.filter((r) => Number(r[0].cnt) > 0).length;
-    if (fullMonths < 3) return null;
-
-    // Monthly revenue for each of the 3 prior months
+    // Monthly revenue for each of the 3 prior months (TZ-aware)
     const monthRevenues = await Promise.all(
       prevMonths.map(({ start, end }) =>
         this.ds.query(
           `SELECT COALESCE(SUM(cost), 0)::numeric AS rev
            FROM records
            WHERE tenant_id = $1 AND attendance = 1
-             AND datetime::date BETWEEN $2 AND $3`,
-          [tenantId, start, end],
+             AND (datetime AT TIME ZONE $4)::date BETWEEN $2 AND $3`,
+          [tenantId, start, end, tz],
         ),
       ),
     );
@@ -235,25 +112,30 @@ export class MetricsService {
       monthRevenues.reduce((sum, r) => sum + Number(r[0].rev), 0) / 3;
     const target = Math.round(avgPrev * 1.1);
 
-    // MTD: from first day of refDate's month up to (exclusive) referenceDate
+    // Guard against zero/NaN target
+    if (!target || !isFinite(target)) return null;
+
+    // MTD: from first day of refDate's month up to (exclusive) referenceDate (TZ-aware)
     const mtdStart = `${refYear}-${String(refMonth).padStart(2, '0')}-01`;
     const [mtdRow] = await this.ds.query(
       `SELECT COALESCE(SUM(cost), 0)::numeric AS mtd
        FROM records
        WHERE tenant_id = $1 AND attendance = 1
-         AND datetime::date >= $2 AND datetime::date < $3`,
-      [tenantId, mtdStart, referenceDate],
+         AND (datetime AT TIME ZONE $4)::date >= $2
+         AND (datetime AT TIME ZONE $4)::date < $3`,
+      [tenantId, mtdStart, referenceDate, tz],
     );
     const mtd = Math.round(Number(mtdRow.mtd));
     const pct = Math.round((mtd / target) * 100);
+    if (!isFinite(pct)) return null;
     return { target, mtd, pct };
   }
 
   // ---------------------------------------------------------------------------
-  // Task 19 — todayCategoryFillRates
+  // Task 19 — todayCategoryFillRates (C2 fix: TZ-aware date filter)
   // ---------------------------------------------------------------------------
 
-  async todayCategoryFillRates(tenantId: string, date: string): Promise<CategoryFill[]> {
+  async todayCategoryFillRates(tenantId: string, date: string, tz: string): Promise<CategoryFill[]> {
     const rows = await this.ds.query(
       `WITH capacity AS (
         SELECT a.category_altegio_id AS cat,
@@ -272,7 +154,7 @@ export class MetricsService {
         JOIN services s
           ON s.tenant_id = r.tenant_id AND s.altegio_service_id = r.altegio_service_id
         WHERE r.tenant_id = $1
-          AND r.datetime::date = $2
+          AND (r.datetime AT TIME ZONE $3)::date = $2
           AND r.attendance IN (0, 1)
           AND s.category_id IS NOT NULL
         GROUP BY s.category_id
@@ -296,7 +178,7 @@ export class MetricsService {
       WHERE c.cap_min >= 30
       ORDER BY c.cap_min DESC
       LIMIT 5`,
-      [tenantId, date],
+      [tenantId, date, tz],
     );
 
     return rows.map((r: any): CategoryFill => ({
@@ -311,54 +193,67 @@ export class MetricsService {
   // yesterdayVisits, yesterdayTopStaff
   // ---------------------------------------------------------------------------
 
-  async scheduledToday(tenantId: string, date: string): Promise<number> {
+  async scheduledToday(tenantId: string, date: string, tz: string): Promise<number> {
     const [row] = await this.ds.query(
       `SELECT COUNT(*)::int AS cnt
        FROM records
-       WHERE tenant_id = $1 AND datetime::date = $2 AND attendance IN (0, 1)`,
-      [tenantId, date],
+       WHERE tenant_id = $1 AND (datetime AT TIME ZONE $3)::date = $2 AND attendance IN (0, 1)`,
+      [tenantId, date, tz],
     );
     return Number(row.cnt);
   }
 
-  private async yesterdayRevenue(tenantId: string, date: string): Promise<number> {
+  private async yesterdayRevenue(tenantId: string, date: string, tz: string): Promise<number> {
     const [row] = await this.ds.query(
       `SELECT COALESCE(SUM(cost), 0)::numeric AS rev
        FROM records
-       WHERE tenant_id = $1 AND attendance = 1 AND datetime::date = $2`,
-      [tenantId, date],
+       WHERE tenant_id = $1 AND attendance = 1 AND (datetime AT TIME ZONE $3)::date = $2`,
+      [tenantId, date, tz],
     );
     return Number(row.rev);
   }
 
-  private async avg7Revenue(tenantId: string, date: string): Promise<number | null> {
-    // Average daily revenue over the 7 days ending on (date - 1 day), i.e. NOT including date itself
+  private async avg7Revenue(tenantId: string, date: string, tz: string): Promise<number | null> {
+    // Average daily revenue over the 7 days ending on (date - 1 day), NOT including date itself
+    // Gate: return null when there isn't at least 7 full prior days of history
     const weekEnd = this.subtractDays(date, 1);
     const weekStart = this.subtractDays(date, 7);
+
+    // Check if earliest record is at or before weekStart
+    const [earliest] = await this.ds.query(
+      `SELECT MIN((datetime AT TIME ZONE $2)::date)::text AS first_day
+       FROM records
+       WHERE tenant_id = $1`,
+      [tenantId, tz],
+    );
+    if (!earliest.first_day || earliest.first_day > weekStart) return null;
+
     const rows = await this.ds.query(
-      `SELECT datetime::date AS day, SUM(cost)::numeric AS rev
+      `SELECT (datetime AT TIME ZONE $4)::date AS day, SUM(cost)::numeric AS rev
        FROM records
        WHERE tenant_id = $1 AND attendance = 1
-         AND datetime::date BETWEEN $2 AND $3
-       GROUP BY datetime::date`,
-      [tenantId, weekStart, weekEnd],
+         AND (datetime AT TIME ZONE $4)::date BETWEEN $2 AND $3
+       GROUP BY (datetime AT TIME ZONE $4)::date`,
+      [tenantId, weekStart, weekEnd, tz],
     );
     if (rows.length === 0) return null;
     const total = rows.reduce((s: number, r: any) => s + Number(r.rev), 0);
-    return total / rows.length;
+    // I7: divide by 7 (not rows.length) for a true 7-day average
+    return total / 7;
   }
 
   private async yesterdayVisits(
     tenantId: string,
     date: string,
+    tz: string,
   ): Promise<{ came: number; cancelled: number }> {
     const [row] = await this.ds.query(
       `SELECT
          COUNT(*) FILTER (WHERE attendance = 1)::int  AS came,
          COUNT(*) FILTER (WHERE attendance = -1)::int AS cancelled
        FROM records
-       WHERE tenant_id = $1 AND datetime::date = $2`,
-      [tenantId, date],
+       WHERE tenant_id = $1 AND (datetime AT TIME ZONE $3)::date = $2`,
+      [tenantId, date, tz],
     );
     return { came: Number(row.came), cancelled: Number(row.cancelled) };
   }
@@ -366,6 +261,7 @@ export class MetricsService {
   private async yesterdayTopStaff(
     tenantId: string,
     date: string,
+    tz: string,
     limit: number,
   ): Promise<TopStaff[]> {
     const rows = await this.ds.query(
@@ -374,11 +270,11 @@ export class MetricsService {
               COUNT(*)::int AS visits
        FROM records r
        JOIN staff s ON s.tenant_id = r.tenant_id AND s.altegio_staff_id = r.altegio_staff_id
-       WHERE r.tenant_id = $1 AND r.datetime::date = $2 AND r.attendance = 1
+       WHERE r.tenant_id = $1 AND (r.datetime AT TIME ZONE $3)::date = $2 AND r.attendance = 1
        GROUP BY s.name
        ORDER BY revenue DESC
-       LIMIT $3`,
-      [tenantId, date, limit],
+       LIMIT $4`,
+      [tenantId, date, tz, limit],
     );
     return rows.map((r: any): TopStaff => ({
       name: r.name,
@@ -396,25 +292,26 @@ export class MetricsService {
     const today = reportDate;
     const tenant = await this.tenants.findById(tenantId);
     if (!tenant) throw new Error(`Tenant ${tenantId} not found`);
+    const tz = tenant.timezone;
 
     const [revenue, avg7, visits, topStaff, utilY, goal] = await Promise.all([
-      this.yesterdayRevenue(tenantId, yesterday),
-      this.avg7Revenue(tenantId, yesterday),
-      this.yesterdayVisits(tenantId, yesterday),
-      this.yesterdayTopStaff(tenantId, yesterday, 3),
-      this.yesterdayUtilization(tenantId, yesterday),
-      this.monthlyGoal(tenantId, yesterday),
+      this.yesterdayRevenue(tenantId, yesterday, tz),
+      this.avg7Revenue(tenantId, yesterday, tz),
+      this.yesterdayVisits(tenantId, yesterday, tz),
+      this.yesterdayTopStaff(tenantId, yesterday, tz, 3),
+      this.yesterdayUtilization(tenantId, yesterday, tz),
+      this.monthlyGoal(tenantId, yesterday, tz),
     ]);
 
     const [scheduledToday, utilT, categories] = await Promise.all([
-      this.scheduledToday(tenantId, today),
-      this.yesterdayUtilization(tenantId, today),
-      this.todayCategoryFillRates(tenantId, today),
+      this.scheduledToday(tenantId, today, tz),
+      this.todayUtilization(tenantId, today, tz),
+      this.todayCategoryFillRates(tenantId, today, tz),
     ]);
 
     return {
       salonName: tenant.salonName,
-      timezone: tenant.timezone,
+      timezone: tz,
       yesterday: {
         date: yesterday,
         revenue,
@@ -447,21 +344,5 @@ export class MetricsService {
     const d = new Date(date + 'T00:00:00Z');
     d.setUTCDate(d.getUTCDate() - n);
     return d.toISOString().slice(0, 10);
-  }
-
-  private async computeEmptySlots(tenantId: string, date: string, tz: string): Promise<string[]> {
-    const rows = await this.ds.query(
-      `SELECT DISTINCT EXTRACT(HOUR FROM datetime AT TIME ZONE $2)::int AS hour
-       FROM records
-       WHERE tenant_id = $1 AND NOT deleted
-         AND (datetime AT TIME ZONE $2)::date = $3`,
-      [tenantId, tz, date],
-    );
-    const busy = new Set(rows.map((r: any) => Number(r.hour)));
-    const hours: string[] = [];
-    for (let h = 10; h <= 19; h++) {
-      if (!busy.has(h)) hours.push(`${String(h).padStart(2, '0')}:00`);
-    }
-    return hours;
   }
 }

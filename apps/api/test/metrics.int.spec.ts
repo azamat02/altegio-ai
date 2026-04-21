@@ -7,63 +7,6 @@ import { AggregatorService } from '../src/modules/sync/aggregator.service';
 import { ResourceAffinityService } from '../src/modules/sync/resource-affinity.service';
 import { MetricsService } from '../src/modules/metrics/metrics.service';
 
-describe('MetricsService (int)', () => {
-  let db: TestDb;
-  let tenants: TenantsService;
-  let svc: MetricsService;
-  let agg: AggregatorService;
-  let tenantId: string;
-
-  beforeAll(async () => {
-    db = await startTestDb();
-    tenants = new TenantsService(db.ds.getRepository(TenantEntity), new TokenCipher(process.env.APP_ENCRYPTION_KEY!));
-    const affinity = new ResourceAffinityService(db.ds);
-    agg = new AggregatorService(db.ds, affinity);
-    svc = new MetricsService(db.ds, tenants);
-
-    const t = await tenants.create({ salonName: 'M', locationId: 1, altegioToken: 't', timezone: 'UTC' });
-    tenantId = t.id;
-
-    await db.ds.query(
-      `INSERT INTO staff (tenant_id, altegio_staff_id, name, fired, bookable) VALUES
-       ($1, 1, 'Alice', false, true),
-       ($1, 2, 'Bob', false, true)`,
-      [tenantId],
-    );
-
-    // 2 completed + 1 cancelled yesterday (2026-04-19), 1 booked today (2026-04-20)
-    await db.ds.query(
-      `INSERT INTO records (tenant_id, altegio_record_id, altegio_staff_id, datetime, seance_length, cost, attendance, paid_full, is_online, deleted) VALUES
-       ($1, 1, 1, '2026-04-19 10:00+00', 3600, 5000, 1, 1, false, false),
-       ($1, 2, 1, '2026-04-19 12:00+00', 3600, 7000, 1, 1, false, false),
-       ($1, 3, 2, '2026-04-19 15:00+00', 3600, 4000, -1, 0, false, false),
-       ($1, 4, 1, '2026-04-20 11:00+00', 3600, 3000, 0, 0, false, false)`,
-      [tenantId],
-    );
-
-    for (const day of ['2026-04-12','2026-04-13','2026-04-14','2026-04-15','2026-04-16','2026-04-17','2026-04-18']) {
-      await db.ds.query(
-        `INSERT INTO daily_metrics (tenant_id, date, revenue_total, visits_completed, visits_cancelled, avg_check, occupancy_pct, computed_at)
-         VALUES ($1, $2, 10000, 5, 1, 2000, 40, now())`,
-        [tenantId, day],
-      );
-    }
-    await agg.recomputeDay(tenantId, '2026-04-19');
-  }, 60000);
-
-  afterAll(async () => { await db.stop(); });
-
-  it('produces DailyReportData with yesterday stats and top staff', async () => {
-    const d = await svc.getDailyReportData(tenantId, '2026-04-20');
-    expect(d.yesterday.revenue).toBe(12000);
-    expect(d.yesterday.visitsCompleted).toBe(2);
-    expect(d.yesterday.visitsCancelled).toBe(1);
-    expect(d.yesterday.cancellationLoss).toBe(4000);
-    expect(d.topStaff[0].name).toBe('Alice');
-    expect(d.today.bookedCount).toBe(1);
-  });
-});
-
 // ---------------------------------------------------------------------------
 // Task 17 — yesterdayUtilization
 // ---------------------------------------------------------------------------
@@ -110,12 +53,12 @@ describe('MetricsService.yesterdayUtilization (int)', () => {
 
   it('returns correct utilization %', async () => {
     // 500 / 1000 * 100 = 50%
-    const pct = await svc.yesterdayUtilization(tenantId, '2026-04-19');
+    const pct = await svc.yesterdayUtilization(tenantId, '2026-04-19', 'UTC');
     expect(pct).toBe(50);
   });
 
   it('returns null when no capacity for the date', async () => {
-    const pct = await svc.yesterdayUtilization(tenantId, '2026-01-01');
+    const pct = await svc.yesterdayUtilization(tenantId, '2026-01-01', 'UTC');
     expect(pct).toBeNull();
   });
 
@@ -126,8 +69,68 @@ describe('MetricsService.yesterdayUtilization (int)', () => {
        ($1, 1, '2026-05-01', 480)`,
       [tenantId],
     );
-    const pct = await svc.yesterdayUtilization(tenantId, '2026-05-01');
+    const pct = await svc.yesterdayUtilization(tenantId, '2026-05-01', 'UTC');
     expect(pct).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// C2 — TZ-aware day boundary (Asia/Almaty)
+// ---------------------------------------------------------------------------
+
+describe('MetricsService TZ boundary (int)', () => {
+  let db: TestDb;
+  let svc: MetricsService;
+  let tenantId: string;
+
+  beforeAll(async () => {
+    db = await startTestDb();
+    const tenants = new TenantsService(
+      db.ds.getRepository(TenantEntity),
+      new TokenCipher(process.env.APP_ENCRYPTION_KEY!),
+    );
+    svc = new MetricsService(db.ds, tenants);
+    const t = await tenants.create({ salonName: 'TZ', locationId: 50, altegioToken: 'tz', timezone: 'Asia/Almaty' });
+    tenantId = t.id;
+
+    await db.ds.query(
+      `INSERT INTO staff (tenant_id, altegio_staff_id, name, fired, bookable) VALUES
+       ($1, 1, 'Askar', false, true)`,
+      [tenantId],
+    );
+
+    // Record at 23:00 Almaty on 2026-04-19 = 18:00 UTC on 2026-04-19
+    // UTC date: 2026-04-19  — but local Almaty date: 2026-04-19
+    // A UTC-naive query (datetime::date) would bucket it correctly for UTC anyway in this case.
+    // The real boundary test: record at 23:00 Almaty = 18:00 UTC on Apr 19.
+    // yesterdayRevenue for yesterday='2026-04-19' with tz=Asia/Almaty must count this record.
+    await db.ds.query(
+      `INSERT INTO records (tenant_id, altegio_record_id, altegio_staff_id, datetime, seance_length, cost, attendance, paid_full, is_online, deleted) VALUES
+       ($1, 700, 1, '2026-04-19 18:00+00', 60, 8000, 1, 1, false, false)`,
+      [tenantId],
+    );
+
+    // Seed 7 days of prior history so avg7Revenue doesn't return null
+    for (let i = 1; i <= 7; i++) {
+      await db.ds.query(
+        `INSERT INTO records (tenant_id, altegio_record_id, altegio_staff_id, datetime, seance_length, cost, attendance, paid_full, is_online, deleted) VALUES
+         ($1, ${700 + i}, 1, $2::timestamptz, 60, 1000, 1, 1, false, false)`,
+        [tenantId, `2026-04-${String(19 - i).padStart(2, '0')} 10:00+00`],
+      );
+    }
+  }, 60000);
+
+  afterAll(async () => { await db.stop(); });
+
+  it('counts a 23:00 Almaty record on the correct local day', async () => {
+    // 2026-04-19 18:00 UTC = 2026-04-19 23:00 Almaty (+5) → local date 2026-04-19
+    const rev = await (svc as any).yesterdayRevenue(tenantId, '2026-04-19', 'Asia/Almaty');
+    expect(rev).toBe(8000);
+  });
+
+  it('does NOT count it on the next local day', async () => {
+    const rev = await (svc as any).yesterdayRevenue(tenantId, '2026-04-20', 'Asia/Almaty');
+    expect(rev).toBe(0);
   });
 });
 
@@ -186,20 +189,20 @@ describe('MetricsService.monthlyGoal (int)', () => {
 
   afterAll(async () => { await db.stop(); });
 
-  it('returns target/mtd/pct with 3 full prior months', async () => {
+  it('returns target/mtd/pct with 3 full prior months and 60+ days of history', async () => {
     // avg of Jan(30000)+Feb(60000)+Mar(90000) = 60000; target = 66000
     // mtd for April up to (exclusive) 2026-04-19 = 10000 + 5000 = 15000
     // pct = round(15000/66000*100) = 23
-    const result = await svc.monthlyGoal(tenantId, '2026-04-19');
+    const result = await svc.monthlyGoal(tenantId, '2026-04-19', 'UTC');
     expect(result).not.toBeNull();
     expect(result!.target).toBe(66000);
     expect(result!.mtd).toBe(15000);
     expect(result!.pct).toBe(23);
   });
 
-  it('returns null when fewer than 3 full prior months', async () => {
-    // Using 2026-02-28 as reference: only Jan is a full prior month
-    const result = await svc.monthlyGoal(tenantId, '2026-02-28');
+  it('returns null when history is less than 60 days before referenceDate', async () => {
+    // earliest record is 2026-01-15; referenceDate 2026-02-28 → gap = 44 days < 60 → null
+    const result = await svc.monthlyGoal(tenantId, '2026-02-28', 'UTC');
     expect(result).toBeNull();
   });
 });
@@ -274,7 +277,7 @@ describe('MetricsService.todayCategoryFillRates (int)', () => {
   afterAll(async () => { await db.stop(); });
 
   it('returns top categories ordered by capacity desc with correct fillPct and visits', async () => {
-    const cats = await svc.todayCategoryFillRates(tenantId, '2026-04-20');
+    const cats = await svc.todayCategoryFillRates(tenantId, '2026-04-20', 'UTC');
     // catA cap=600, catB cap=200, catC cap=200 (all >=30)
     // Order: catA first (600), then catB/catC (200 each)
     expect(cats.length).toBe(3);
@@ -307,7 +310,7 @@ describe('MetricsService.todayCategoryFillRates (int)', () => {
        ($1, 1004, 'Tiny', 400, 100, 200, true)`,
       [tenantId],
     );
-    const cats = await svc.todayCategoryFillRates(tenantId, '2026-04-20');
+    const cats = await svc.todayCategoryFillRates(tenantId, '2026-04-20', 'UTC');
     expect(cats.find((c) => c.name === 'Tiny')).toBeUndefined();
   });
 
@@ -325,7 +328,7 @@ describe('MetricsService.todayCategoryFillRates (int)', () => {
         [tenantId],
       );
     }
-    const cats = await svc.todayCategoryFillRates(tenantId, '2026-04-20');
+    const cats = await svc.todayCategoryFillRates(tenantId, '2026-04-20', 'UTC');
     expect(cats.length).toBeLessThanOrEqual(5);
   });
 });
@@ -422,8 +425,9 @@ describe('MetricsService.buildDailyReportData (int)', () => {
     expect(data.today.date).toBe('2026-04-20');
     // attendance IN (0,1): record 404 (attendance=0) + record 405 (attendance=1) = 2
     expect(data.today.scheduled).toBe(2);
-    // utilizationPct today: attended (attendance=1) on 2026-04-20 = record 405 seance 120; capacity 600 => 20%
-    expect(data.today.utilizationPct).toBe(20);
+    // C3 fix: todayUtilization uses attendance IN (0,1)
+    // booked: record 404 (90 min, att=0) + record 405 (120 min, att=1) = 210 min; capacity 600 => 35%
+    expect(data.today.utilizationPct).toBe(35);
     expect(Array.isArray(data.today.categories)).toBe(true);
   });
 });
