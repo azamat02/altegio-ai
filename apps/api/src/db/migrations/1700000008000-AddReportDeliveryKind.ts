@@ -11,7 +11,7 @@ export class AddReportDeliveryKind1700000008000 implements MigrationInterface {
     // Drop the existing primary key on (tenant_id, date).
     await qr.query(`
       ALTER TABLE report_deliveries
-      DROP CONSTRAINT report_deliveries_pkey
+      DROP CONSTRAINT IF EXISTS report_deliveries_pkey
     `);
 
     // Drop old unique constraint if present (fallback).
@@ -41,6 +41,11 @@ export class AddReportDeliveryKind1700000008000 implements MigrationInterface {
 
     // Drop the new primary key.
     await qr.query('ALTER TABLE report_deliveries DROP CONSTRAINT IF EXISTS report_deliveries_pkey');
+
+    // Rolling back means narrowing the PK from (tenant_id, date, message_kind)
+    // to (tenant_id, date). Any 'today' rows written while the feature was live
+    // would collide — drop them to let the old PK come back cleanly.
+    await qr.query(`DELETE FROM report_deliveries WHERE message_kind = 'today'`);
 
     // Restore the original primary key on (tenant_id, date).
     await qr.query(`
