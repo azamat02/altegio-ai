@@ -3,8 +3,6 @@ import { startTestDb } from './helpers/test-db';
 import { TenantEntity } from '../src/modules/tenants/tenant.entity';
 import { TenantsService } from '../src/modules/tenants/tenants.service';
 import { TokenCipher } from '../src/modules/tenants/token-cipher.service';
-import { AggregatorService } from '../src/modules/sync/aggregator.service';
-import { ResourceAffinityService } from '../src/modules/sync/resource-affinity.service';
 import { MetricsService } from '../src/modules/metrics/metrics.service';
 
 // ---------------------------------------------------------------------------

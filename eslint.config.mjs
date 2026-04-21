@@ -3,7 +3,7 @@ import prettier from 'eslint-config-prettier';
 
 export default tseslint.config(
   {
-    ignores: ['**/dist/**', '**/node_modules/**', '**/coverage/**', 'demo-site/**', 'mockups/**'],
+    ignores: ['**/dist/**', '**/node_modules/**', '**/coverage/**', 'demo-site/**', 'mockups/**', '.worktrees/**'],
   },
   ...tseslint.configs.recommended,
   prettier,
