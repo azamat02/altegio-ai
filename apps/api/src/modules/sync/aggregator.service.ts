@@ -1,10 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
+import { ResourceAffinityService } from './resource-affinity.service';
 
 @Injectable()
 export class AggregatorService {
-  constructor(@InjectDataSource() private readonly ds: DataSource) {}
+  constructor(
+    @InjectDataSource() private readonly ds: DataSource,
+    private readonly affinity: ResourceAffinityService,
+  ) {}
 
   /**
    * Recompute daily_metrics + staff_daily for a given (tenant, date).
@@ -79,5 +83,6 @@ export class AggregatorService {
         [tenantId, date],
       );
     });
+    await this.affinity.recompute(tenantId);
   }
 }

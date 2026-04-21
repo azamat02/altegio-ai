@@ -4,6 +4,7 @@ import { TenantEntity } from '../src/modules/tenants/tenant.entity';
 import { TenantsService } from '../src/modules/tenants/tenants.service';
 import { TokenCipher } from '../src/modules/tenants/token-cipher.service';
 import { AggregatorService } from '../src/modules/sync/aggregator.service';
+import { ResourceAffinityService } from '../src/modules/sync/resource-affinity.service';
 import { MetricsService } from '../src/modules/metrics/metrics.service';
 
 describe('MetricsService (int)', () => {
@@ -16,7 +17,8 @@ describe('MetricsService (int)', () => {
   beforeAll(async () => {
     db = await startTestDb();
     tenants = new TenantsService(db.ds.getRepository(TenantEntity), new TokenCipher(process.env.APP_ENCRYPTION_KEY!));
-    agg = new AggregatorService(db.ds);
+    const affinity = new ResourceAffinityService(db.ds);
+    agg = new AggregatorService(db.ds, affinity);
     svc = new MetricsService(db.ds, tenants);
 
     const t = await tenants.create({ salonName: 'M', locationId: 1, altegioToken: 't', timezone: 'UTC' });

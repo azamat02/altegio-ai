@@ -5,6 +5,7 @@ import { SyncJobEntity } from '../src/modules/sync/entities/sync-job.entity';
 import { TenantsService } from '../src/modules/tenants/tenants.service';
 import { TokenCipher } from '../src/modules/tenants/token-cipher.service';
 import { AggregatorService } from '../src/modules/sync/aggregator.service';
+import { ResourceAffinityService } from '../src/modules/sync/resource-affinity.service';
 import { RawWriterService } from '../src/modules/sync/raw-writer.service';
 import { RecordsParser } from '../src/modules/sync/parsers/records.parser';
 import { StaffParser } from '../src/modules/sync/parsers/staff.parser';
@@ -35,7 +36,8 @@ describe('SyncService integration', () => {
       db.ds.getRepository(AltegioRawServiceEntity),
       db.ds,
     );
-    const agg = new AggregatorService(db.ds);
+    const affinity = new ResourceAffinityService(db.ds);
+    const agg = new AggregatorService(db.ds, affinity);
 
     const recFix = JSON.parse(readFileSync(join(__dirname, 'fixtures/altegio/records-sample.json'), 'utf8'));
     const stfFix = JSON.parse(readFileSync(join(__dirname, 'fixtures/altegio/staff-sample.json'), 'utf8'));

@@ -4,11 +4,13 @@ import { TenantEntity } from '../src/modules/tenants/tenant.entity';
 import { TenantsService } from '../src/modules/tenants/tenants.service';
 import { TokenCipher } from '../src/modules/tenants/token-cipher.service';
 import { AggregatorService } from '../src/modules/sync/aggregator.service';
+import { ResourceAffinityService } from '../src/modules/sync/resource-affinity.service';
 
 describe('AggregatorService (int)', () => {
   let db: TestDb;
   let svc: TenantsService;
   let agg: AggregatorService;
+  let affinity: ResourceAffinityService;
 
   beforeAll(async () => {
     db = await startTestDb();
@@ -16,7 +18,8 @@ describe('AggregatorService (int)', () => {
       db.ds.getRepository(TenantEntity),
       new TokenCipher(process.env.APP_ENCRYPTION_KEY!),
     );
-    agg = new AggregatorService(db.ds);
+    affinity = new ResourceAffinityService(db.ds);
+    agg = new AggregatorService(db.ds, affinity);
   });
 
   afterAll(async () => { await db.stop(); });
