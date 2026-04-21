@@ -13,6 +13,7 @@ export interface RecordRow {
   paidFull: number;
   isOnline: boolean;
   deleted: boolean;
+  resourceInstanceIds: number[];
 }
 
 function computeCost(dto: AltegioRecordDto): number {
@@ -33,7 +34,8 @@ export class RecordsParser {
       altegioStaffId: dto.staff_id ?? null,
       altegioClientId: dto.client?.id ?? null,
       datetime: new Date(dto.datetime),
-      seanceLength: Number(dto.seance_length ?? dto.length ?? 0) || null,
+      seanceLength: Number(dto.length ?? dto.seance_length ?? 0) || null,
+      resourceInstanceIds: Array.isArray(dto.resource_instance_ids) ? dto.resource_instance_ids : [],
       cost: computeCost(dto),
       attendance: dto.attendance ?? 0,
       paidFull: dto.paid_full ?? 0,

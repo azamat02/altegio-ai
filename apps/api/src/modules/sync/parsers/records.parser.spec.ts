@@ -79,4 +79,18 @@ describe('RecordsParser', () => {
     } as any;
     expect(parser.toRecordRow('t', dto).cost).toBe(5000);
   });
+
+  it('prefers record.length over service.seance_length and carries resource ids', () => {
+    const dto: AltegioRecordDto = {
+      id: 1, staff_id: 11, services: [{ id: 100, title: 's' }],
+      datetime: '2026-04-19T10:00:00+05:00',
+      attendance: 1, cost: 10000, paid_full: 0, deleted: false,
+      seance_length: 1800, length: 2400,
+      resource_instance_ids: [135733],
+    };
+
+    const row = parser.toRecordRow('t', dto);
+    expect(row.seanceLength).toBe(2400);
+    expect(row.resourceInstanceIds).toEqual([135733]);
+  });
 });
