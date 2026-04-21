@@ -11,3 +11,7 @@ coverage
 .nyc_output
 # nested independent repo, not tracked here
 demo-site/
+
+# git worktrees — superpowers isolated workspaces
+.worktrees/
+
