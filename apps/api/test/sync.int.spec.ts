@@ -33,6 +33,7 @@ describe('SyncService integration', () => {
       db.ds.getRepository(AltegioRawClientEntity),
       db.ds.getRepository(AltegioRawStaffEntity),
       db.ds.getRepository(AltegioRawServiceEntity),
+      db.ds,
     );
     const agg = new AggregatorService(db.ds);
 
@@ -40,10 +41,15 @@ describe('SyncService integration', () => {
     const stfFix = JSON.parse(readFileSync(join(__dirname, 'fixtures/altegio/staff-sample.json'), 'utf8'));
     const svcFix = JSON.parse(readFileSync(join(__dirname, 'fixtures/altegio/services-sample.json'), 'utf8'));
     const cliFix = JSON.parse(readFileSync(join(__dirname, 'fixtures/altegio/clients-sample.json'), 'utf8'));
+    const resFix = JSON.parse(readFileSync(join(__dirname, 'fixtures/altegio/resources-sample.json'), 'utf8'));
+    const ttFix  = JSON.parse(readFileSync(join(__dirname, 'fixtures/altegio/timetable-sample.json'), 'utf8'));
+
     const recEp = { fetchAll: async function* () { yield recFix; } } as any;
     const cliEp = { fetchPage: async () => cliFix } as any;
     const stfEp = { fetchAll: async () => stfFix } as any;
     const svcEp = { fetchAll: async () => svcFix } as any;
+    const resEp = { fetchAll: async () => resFix } as any;
+    const ttEp  = { fetchResourceRange: async () => ttFix } as any;
 
     svc = new SyncService(
       db.ds,
@@ -56,6 +62,7 @@ describe('SyncService integration', () => {
       new ServicesParser(),
       new ClientsParser(),
       recEp, cliEp, stfEp, svcEp,
+      resEp, ttEp,
     );
   });
 
@@ -75,5 +82,23 @@ describe('SyncService integration', () => {
 
     const dm = await db.ds.query(`SELECT * FROM daily_metrics WHERE tenant_id = $1`, [t.id]);
     expect(dm.length).toBeGreaterThan(0);
+  });
+
+  it('pulls resources and populates resource_schedule', async () => {
+    const t = await tenants.create({ salonName: 'ResourceTest', locationId: 199000, altegioToken: 'y', timezone: 'Asia/Almaty' });
+
+    await svc.syncTenant(t.id, { days: 3 });
+
+    const resCount = await db.ds.query(
+      `SELECT COUNT(*) FROM resources WHERE tenant_id = $1`,
+      [t.id],
+    );
+    expect(Number(resCount[0].count)).toBeGreaterThan(0);
+
+    const schedCount = await db.ds.query(
+      `SELECT COUNT(*) FROM resource_schedule WHERE tenant_id = $1`,
+      [t.id],
+    );
+    expect(Number(schedCount[0].count)).toBeGreaterThan(0);
   });
 });
