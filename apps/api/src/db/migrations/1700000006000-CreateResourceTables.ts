@@ -5,7 +5,7 @@ export class CreateResourceTables1700000006000 implements MigrationInterface {
     await qr.query(`
       CREATE TABLE resources (
         tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-        altegio_id int NOT NULL,
+        altegio_id bigint NOT NULL,
         title text NOT NULL,
         fetched_at timestamptz NOT NULL DEFAULT now(),
         PRIMARY KEY (tenant_id, altegio_id)
@@ -14,8 +14,8 @@ export class CreateResourceTables1700000006000 implements MigrationInterface {
 
     await qr.query(`
       CREATE TABLE resource_schedule (
-        tenant_id uuid NOT NULL,
-        resource_altegio_id int NOT NULL,
+        tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+        resource_altegio_id bigint NOT NULL,
         date date NOT NULL,
         working_minutes int NOT NULL,
         fetched_at timestamptz NOT NULL DEFAULT now(),
@@ -30,9 +30,9 @@ export class CreateResourceTables1700000006000 implements MigrationInterface {
 
     await qr.query(`
       CREATE TABLE resource_category_affinity (
-        tenant_id uuid NOT NULL,
-        resource_altegio_id int NOT NULL,
-        category_altegio_id int NOT NULL,
+        tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+        resource_altegio_id bigint NOT NULL,
+        category_altegio_id bigint NOT NULL,
         share numeric(5,4) NOT NULL,
         computed_at timestamptz NOT NULL DEFAULT now(),
         PRIMARY KEY (tenant_id, resource_altegio_id, category_altegio_id)
