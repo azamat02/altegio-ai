@@ -80,6 +80,24 @@ describe('RecordsParser', () => {
     expect(parser.toRecordRow('t', dto).cost).toBe(5000);
   });
 
+  it('picks the first service id as altegioServiceId', () => {
+    const dto: AltegioRecordDto = {
+      id: 99, staff_id: 7, services: [{ id: 5001, title: 's' }, { id: 5002, title: 's2' }],
+      datetime: '2026-04-19T10:00:00+05:00', attendance: 1,
+      cost: 0, seance_length: 0, paid_full: 0, deleted: false,
+    };
+    expect(parser.toRecordRow('t', dto).altegioServiceId).toBe(5001);
+  });
+
+  it('leaves altegioServiceId null when services is empty', () => {
+    const dto: AltegioRecordDto = {
+      id: 100, staff_id: 7, services: [],
+      datetime: '2026-04-19T10:00:00+05:00', attendance: 1,
+      cost: 0, seance_length: 0, paid_full: 0, deleted: false,
+    };
+    expect(parser.toRecordRow('t', dto).altegioServiceId).toBeNull();
+  });
+
   it('prefers record.length over service.seance_length and carries resource ids', () => {
     const dto: AltegioRecordDto = {
       id: 1, staff_id: 11, services: [{ id: 100, title: 's' }],

@@ -126,7 +126,7 @@ export class SyncService {
 
   private async upsertRecords(rows: RecordRow[]): Promise<void> {
     if (rows.length === 0) return;
-    const COLS = 11;
+    const COLS = 12;
     const values = rows
       .map((_, i) => {
         const base = i * COLS;
@@ -135,16 +135,17 @@ export class SyncService {
       .join(', ');
     const params = rows.flatMap((r) => [
       r.tenantId, r.altegioRecordId, r.altegioStaffId, r.altegioClientId,
-      r.datetime, r.seanceLength, r.cost, r.attendance, r.paidFull, r.isOnline, r.deleted,
+      r.altegioServiceId, r.datetime, r.seanceLength, r.cost, r.attendance, r.paidFull, r.isOnline, r.deleted,
     ]);
     await this.ds.query(
       `
       INSERT INTO records
-        (tenant_id, altegio_record_id, altegio_staff_id, altegio_client_id, datetime, seance_length, cost, attendance, paid_full, is_online, deleted)
+        (tenant_id, altegio_record_id, altegio_staff_id, altegio_client_id, altegio_service_id, datetime, seance_length, cost, attendance, paid_full, is_online, deleted)
       VALUES ${values}
       ON CONFLICT (tenant_id, altegio_record_id) DO UPDATE SET
         altegio_staff_id = EXCLUDED.altegio_staff_id,
         altegio_client_id = EXCLUDED.altegio_client_id,
+        altegio_service_id = EXCLUDED.altegio_service_id,
         datetime = EXCLUDED.datetime,
         seance_length = EXCLUDED.seance_length,
         cost = EXCLUDED.cost,

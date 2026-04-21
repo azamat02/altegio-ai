@@ -6,6 +6,7 @@ export interface RecordRow {
   altegioRecordId: number;
   altegioStaffId: number | null;
   altegioClientId: number | null;
+  altegioServiceId: number | null;
   datetime: Date;
   seanceLength: number | null;
   cost: number;
@@ -33,6 +34,7 @@ export class RecordsParser {
       altegioRecordId: dto.id,
       altegioStaffId: dto.staff_id ?? null,
       altegioClientId: dto.client?.id ?? null,
+      altegioServiceId: dto.services?.[0]?.id ?? null,
       datetime: new Date(dto.datetime),
       seanceLength: Number(dto.length ?? dto.seance_length ?? 0) || null,
       resourceInstanceIds: Array.isArray(dto.resource_instance_ids) ? dto.resource_instance_ids : [],
