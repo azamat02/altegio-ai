@@ -158,15 +158,8 @@ export class MetricsService {
           AND r.attendance IN (0, 1)
           AND s.category_id IS NOT NULL
         GROUP BY s.category_id
-      ),
-      names AS (
-        SELECT category_id AS cat,
-               MIN(title) AS category_title
-        FROM services
-        WHERE tenant_id = $1 AND category_id IS NOT NULL
-        GROUP BY category_id
       )
-      SELECT n.category_title AS name,
+      SELECT sc.title AS name,
              COALESCE(b.visits, 0) AS visits,
              CASE WHEN c.cap_min > 0
                   THEN round(100.0 * COALESCE(b.b_min, 0) / c.cap_min)::int
@@ -174,7 +167,8 @@ export class MetricsService {
              c.cap_min
       FROM capacity c
       LEFT JOIN booked b ON b.cat = c.cat
-      LEFT JOIN names n ON n.cat = c.cat
+      LEFT JOIN service_categories sc
+        ON sc.tenant_id = $1 AND sc.altegio_category_id = c.cat
       WHERE c.cap_min >= 30
       ORDER BY c.cap_min DESC
       LIMIT 5`,

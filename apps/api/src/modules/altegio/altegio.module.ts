@@ -7,6 +7,7 @@ import { StaffEndpoint } from './endpoints/staff';
 import { ServicesEndpoint } from './endpoints/services';
 import { ResourcesEndpoint } from './endpoints/resources';
 import { TimetableEndpoint } from './endpoints/timetable';
+import { ServiceCategoriesEndpoint } from './endpoints/service-categories';
 
 @Module({
   providers: [
@@ -24,7 +25,8 @@ import { TimetableEndpoint } from './endpoints/timetable';
     ServicesEndpoint,
     ResourcesEndpoint,
     TimetableEndpoint,
+    ServiceCategoriesEndpoint,
   ],
-  exports: [AltegioClient, RecordsEndpoint, ClientsEndpoint, StaffEndpoint, ServicesEndpoint, ResourcesEndpoint, TimetableEndpoint],
+  exports: [AltegioClient, RecordsEndpoint, ClientsEndpoint, StaffEndpoint, ServicesEndpoint, ResourcesEndpoint, TimetableEndpoint, ServiceCategoriesEndpoint],
 })
 export class AltegioModule {}

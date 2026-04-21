@@ -11,6 +11,7 @@ import { AltegioStaffDto } from '../altegio/dto/staff.dto';
 import { AltegioServiceDto } from '../altegio/dto/service.dto';
 import { ResourceRow } from './parsers/resources.parser';
 import { ResourceScheduleRow } from './parsers/timetable.parser';
+import { ServiceCategoryRow } from './parsers/service-categories.parser';
 
 @Injectable()
 export class RawWriterService {
@@ -81,6 +82,21 @@ export class RawWriterService {
         rows.map(r => r.resourceAltegioId),
         rows.map(r => r.date),
         rows.map(r => r.workingMinutes),
+      ],
+    );
+  }
+
+  async upsertServiceCategories(rows: ServiceCategoryRow[]): Promise<void> {
+    if (!rows.length) return;
+    await this.dataSource.query(
+      `INSERT INTO service_categories (tenant_id, altegio_category_id, title)
+       SELECT * FROM unnest($1::uuid[], $2::bigint[], $3::text[])
+       ON CONFLICT (tenant_id, altegio_category_id)
+       DO UPDATE SET title = EXCLUDED.title, fetched_at = now()`,
+      [
+        rows.map(r => r.tenantId),
+        rows.map(r => r.altegioCategoryId),
+        rows.map(r => r.title),
       ],
     );
   }

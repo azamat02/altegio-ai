@@ -259,6 +259,15 @@ describe('MetricsService.todayCategoryFillRates (int)', () => {
       [tenantId],
     );
 
+    // Service categories (source of truth for category names)
+    await db.ds.query(
+      `INSERT INTO service_categories (tenant_id, altegio_category_id, title) VALUES
+       ($1, 100, 'Haircut'),
+       ($1, 200, 'Color'),
+       ($1, 300, 'Manicure')`,
+      [tenantId],
+    );
+
     // Records on 2026-04-20:
     // catA (svc 1001): 10800 + 7200 = 18000 sec = 300 min booked → fillPct = round(300/600*100) = 50
     // catB (svc 1002): 6000 sec = 100 min booked → fillPct = round(100/200*100) = 50

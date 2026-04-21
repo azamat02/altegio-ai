@@ -9,12 +9,14 @@ import { StaffParser, StaffRow } from './parsers/staff.parser';
 import { ServicesParser, ServiceRow } from './parsers/services.parser';
 import { ClientsParser, ClientRow } from './parsers/clients.parser';
 import { parseStaffSchedule } from './parsers/timetable.parser';
+import { parseServiceCategories } from './parsers/service-categories.parser';
 import { RecordsEndpoint } from '../altegio/endpoints/records';
 import { ClientsEndpoint } from '../altegio/endpoints/clients';
 import { StaffEndpoint } from '../altegio/endpoints/staff';
 import { ServicesEndpoint } from '../altegio/endpoints/services';
 import { ResourcesEndpoint } from '../altegio/endpoints/resources';
 import { TimetableEndpoint } from '../altegio/endpoints/timetable';
+import { ServiceCategoriesEndpoint } from '../altegio/endpoints/service-categories';
 import { SyncJobEntity } from './entities/sync-job.entity';
 import { loadConfig } from '../../config/app.config';
 
@@ -42,6 +44,7 @@ export class SyncService {
     private readonly svcEp: ServicesEndpoint,
     private readonly _resEp: ResourcesEndpoint,
     private readonly ttEp: TimetableEndpoint,
+    private readonly svcCatEp: ServiceCategoriesEndpoint,
   ) {}
 
   async syncTenant(tenantId: string, opts: SyncOptions = {}): Promise<void> {
@@ -85,13 +88,17 @@ export class SyncService {
       await this.rawWriter.writeClients(tenantId, cliBatch);
       await this.upsertClients(tenantId, cliBatch.map((c) => this.cliParser.toRow(tenantId, c)));
 
-      // 4) Staff schedule (single call for entire date range)
+      // 4) Service categories
+      const categories = await this.svcCatEp.fetchAll(auth);
+      await this.rawWriter.upsertServiceCategories(parseServiceCategories(tenantId, categories));
+
+      // 5) Staff schedule (single call for entire date range)
       const scheduleStart = fmt(new Date(Date.now() - days * 86_400_000));
       const scheduleEnd = fmt(new Date(Date.now() + 86_400_000)); // include tomorrow
       const schedule = await this.ttEp.fetchStaffSchedule(auth, scheduleStart, scheduleEnd);
       await this.rawWriter.upsertResourceSchedule(parseStaffSchedule(tenantId, schedule));
 
-      // 5) Aggregate every touched date
+      // 6) Aggregate every touched date
       for (const d of touchedDates) {
         await this.aggregator.recomputeDay(tenantId, d);
       }

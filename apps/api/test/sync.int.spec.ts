@@ -51,6 +51,7 @@ describe('SyncService integration', () => {
     const svcEp = { fetchAll: async () => svcFix } as any;
     const resEp = {} as any; // ResourcesEndpoint kept in DI but no longer called
     const ttEp  = { fetchStaffSchedule: async () => ttFix } as any;
+    const svcCatEp = { fetchAll: async () => [] } as any;
 
     svc = new SyncService(
       db.ds,
@@ -63,7 +64,7 @@ describe('SyncService integration', () => {
       new ServicesParser(),
       new ClientsParser(),
       recEp, cliEp, stfEp, svcEp,
-      resEp, ttEp,
+      resEp, ttEp, svcCatEp,
     );
   });
 
