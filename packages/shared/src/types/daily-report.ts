@@ -1,48 +1,32 @@
-export interface DailyReportData {
-  tenant: {
-    id: string;
-    salonName: string;
-    timezone: string;
-  };
-  date: string; // YYYY-MM-DD (yesterday)
+export type TopStaff = { name: string; revenue: number; visits: number };
+export type CategoryFill = { name: string; fillPct: number; visits: number };
 
-  yesterday: {
-    revenue: number;
-    visitsCompleted: number;
-    visitsCancelled: number;
-    avgCheck: number;
-    cancelRate: number;       // 0..1
-    cancellationLoss: number; // sum of cancelled records' cost
-  };
+export type YesterdayBlock = {
+  date: string;              // 'YYYY-MM-DD'
+  revenue: number;
+  avg7: number | null;
+  deltaPct: number | null;
+  came: number;
+  cancelled: number;
+  avgCheck: number | null;
+  utilizationPct: number | null;
+  monthlyGoalPct: number | null;
+  monthlyGoalTarget: number | null;
+  monthlyGoalMtd: number | null;
+  topStaff: TopStaff[];
+  aiInsight: string | null;
+};
 
-  baseline7d: {
-    avgRevenue: number;
-    avgVisits: number;
-    avgCancelRate: number;
-  };
+export type TodayBlock = {
+  date: string;
+  scheduled: number;
+  utilizationPct: number | null;
+  categories: CategoryFill[]; // top-5 by capacity desc, may be empty
+};
 
-  topStaff: Array<{
-    staffId: number;
-    name: string;
-    revenue: number;
-    visits: number;
-  }>;
-
-  strugglingStaff: Array<{
-    staffId: number;
-    name: string;
-    consecutiveDaysBelowAvg: number;
-  }>;
-
-  today: {
-    bookedCount: number;
-    occupancyPct: number;
-    emptySlots: string[]; // ["14:00", "18:00", "19:00"]
-  };
-
-  cancelClusters: Array<{
-    staffName: string;
-    hour: number; // 0..23
-    count: number;
-  }>;
-}
+export type DailyReportData = {
+  salonName: string;
+  timezone: string;
+  yesterday: YesterdayBlock;
+  today: TodayBlock;
+};
