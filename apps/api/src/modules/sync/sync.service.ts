@@ -47,7 +47,7 @@ export class SyncService {
     private readonly svcCatEp: ServiceCategoriesEndpoint,
   ) {}
 
-  async syncTenant(tenantId: string, opts: SyncOptions = {}): Promise<void> {
+  async syncTenant(tenantId: string, opts: SyncOptions = {}): Promise<{ recordsFetched: number }> {
     const tenant = await this.tenants.findById(tenantId);
     if (!tenant) throw new Error(`Tenant ${tenantId} not found`);
 
@@ -109,6 +109,7 @@ export class SyncService {
         recordsFetched: total,
       });
       this.log.log(`[${tenant.salonName}] sync ok — ${total} records, ${touchedDates.size} dates`);
+      return { recordsFetched: total };
     } catch (err: any) {
       await this.jobs.update({ id: job.id }, {
         status: 'failed',
