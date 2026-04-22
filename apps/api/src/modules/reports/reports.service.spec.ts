@@ -17,12 +17,22 @@ function makeDeliveriesRepo() {
   };
 }
 
+function makeTenantChats(chatId = 12345) {
+  return {
+    listSubscribedChats: jest.fn().mockResolvedValue([
+      { tenantId: 't-1', chatId, role: 'owner', subscribed: true },
+    ]),
+    setSubscribed: jest.fn().mockResolvedValue(undefined),
+  };
+}
+
 function makeSvc(overrides: {
   metrics?: any;
   ai?: any;
   telegram?: any;
   tenants?: any;
   deliveries?: any;
+  tenantChats?: any;
 }) {
   const metrics = overrides.metrics ?? {
     buildDailyReportData: jest.fn().mockResolvedValue(cloneFixture()),
@@ -37,6 +47,7 @@ function makeSvc(overrides: {
     findById: jest.fn().mockResolvedValue({ id: 't-1', salonName: 'Салон №1', telegramChatId: 12345 }),
   };
   const deliveries = overrides.deliveries ?? makeDeliveriesRepo();
+  const tenantChats = overrides.tenantChats ?? makeTenantChats();
 
   const svc = new ReportsService(
     metrics as any,
@@ -44,9 +55,10 @@ function makeSvc(overrides: {
     telegram as any,
     tenants as any,
     deliveries as any,
+    tenantChats as any,
   );
 
-  return { svc, metrics, ai, telegram, tenants, deliveries };
+  return { svc, metrics, ai, telegram, tenants, deliveries, tenantChats };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -79,11 +91,11 @@ describe('ReportsService.generateAndDeliver', () => {
     expect(deliveries.save).toHaveBeenCalledWith(expect.objectContaining({ messageKind: 'today' }));
   });
 
-  it('records a failed delivery and re-throws on telegram error', async () => {
+  it('records a failed delivery but does not throw on telegram error', async () => {
     const telegram = { sendReport: jest.fn().mockRejectedValue(new Error('tg 500')) };
     const { svc, deliveries } = makeSvc({ telegram });
 
-    await expect(svc.generateAndDeliver('t-1', '2026-04-20')).rejects.toThrow('tg 500');
+    await expect(svc.generateAndDeliver('t-1', '2026-04-20')).resolves.toBeUndefined();
 
     expect(deliveries.save).toHaveBeenCalledWith(
       expect.objectContaining({ status: 'failed', error: expect.stringContaining('tg 500') }),
@@ -111,10 +123,14 @@ describe('ReportsService.generateAndDeliver', () => {
     await expect(svc.generateAndDeliver('t-1', '2026-04-20')).rejects.toThrow(/not found/);
   });
 
-  it('throws when tenant has no telegram_chat_id', async () => {
-    const tenants = { findById: jest.fn().mockResolvedValue({ id: 't-1', salonName: 'S', telegramChatId: null }) };
-    const { svc } = makeSvc({ tenants });
-    await expect(svc.generateAndDeliver('t-1', '2026-04-20')).rejects.toThrow(/no telegram_chat_id/);
+  it('skips delivery and logs when tenant has no subscribed chats', async () => {
+    const tenantChats = {
+      listSubscribedChats: jest.fn().mockResolvedValue([]),
+      setSubscribed: jest.fn(),
+    };
+    const { svc, telegram } = makeSvc({ tenantChats });
+    await expect(svc.generateAndDeliver('t-1', '2026-04-20')).resolves.toBeUndefined();
+    expect(telegram.sendReport).not.toHaveBeenCalled();
   });
 
   it('passes tenantId to ai.getInsight', async () => {
@@ -122,6 +138,67 @@ describe('ReportsService.generateAndDeliver', () => {
     const { svc } = makeSvc({ ai });
     await svc.generateAndDeliver('t-1', '2026-04-20');
     expect(ai.getInsight).toHaveBeenCalledWith('t-1', expect.any(Object));
+  });
+
+  it('sends to every subscribed chat and writes per-chat delivery row', async () => {
+    const tenantChats = {
+      listSubscribedChats: jest.fn().mockResolvedValue([
+        { tenantId: 't1', chatId: 111, role: 'owner', subscribed: true },
+        { tenantId: 't1', chatId: 222, role: 'member', subscribed: true },
+      ]),
+      setSubscribed: jest.fn().mockResolvedValue(undefined),
+    };
+    const telegram = { sendReport: jest.fn().mockResolvedValue({ messageId: 42 }) };
+    const deliveries = makeDeliveriesRepo();
+
+    const { svc } = makeSvc({ tenantChats, telegram, deliveries });
+    await svc.generateAndDeliver('t1', '2026-04-22');
+
+    expect(telegram.sendReport).toHaveBeenCalledTimes(4); // 2 kinds × 2 chats
+    expect(deliveries.save).toHaveBeenCalledWith(expect.objectContaining({ chatId: 111 }));
+    expect(deliveries.save).toHaveBeenCalledWith(expect.objectContaining({ chatId: 222 }));
+  });
+
+  it('auto-unsubscribes member on 403 but not owner', async () => {
+    const tenantChats = {
+      listSubscribedChats: jest.fn().mockResolvedValue([
+        { tenantId: 't1', chatId: 111, role: 'owner', subscribed: true },
+        { tenantId: 't1', chatId: 222, role: 'member', subscribed: true },
+      ]),
+      setSubscribed: jest.fn().mockResolvedValue(undefined),
+    };
+    const forbidden = Object.assign(new Error('blocked'), { response: { error_code: 403 } });
+    const telegram = {
+      sendReport: jest.fn().mockImplementation((chatId: number) =>
+        chatId === 222 ? Promise.reject(forbidden) : Promise.resolve({ messageId: 1 }),
+      ),
+    };
+    const deliveries = makeDeliveriesRepo();
+
+    const { svc } = makeSvc({ tenantChats, telegram, deliveries });
+    await svc.generateAndDeliver('t1', '2026-04-22');
+
+    expect(tenantChats.setSubscribed).toHaveBeenCalledWith('t1', 222, false);
+    expect(tenantChats.setSubscribed).not.toHaveBeenCalledWith('t1', 111, expect.anything());
+  });
+
+  it('skips (kind, chat) when delivery row already sent', async () => {
+    const tenantChats = {
+      listSubscribedChats: jest.fn().mockResolvedValue([
+        { tenantId: 't1', chatId: 111, role: 'owner', subscribed: true },
+      ]),
+      setSubscribed: jest.fn().mockResolvedValue(undefined),
+    };
+    const telegram = { sendReport: jest.fn().mockResolvedValue({ messageId: 1 }) };
+    const deliveries = makeDeliveriesRepo();
+    deliveries.findOne.mockImplementation((q: any) =>
+      q.where.messageKind === 'yesterday' ? Promise.resolve({ status: 'sent' }) : Promise.resolve(null),
+    );
+
+    const { svc } = makeSvc({ tenantChats, telegram, deliveries });
+    await svc.generateAndDeliver('t1', '2026-04-22');
+
+    expect(telegram.sendReport).toHaveBeenCalledTimes(1); // today only
   });
 });
 

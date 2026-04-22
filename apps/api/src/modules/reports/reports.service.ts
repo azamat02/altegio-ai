@@ -7,6 +7,7 @@ import { AiInsightService } from './ai-insight.service';
 import { TelegramService } from '../telegram/telegram.service';
 import { TenantsService } from '../tenants/tenants.service';
 import { ReportDeliveryEntity } from './entities/report-delivery.entity';
+import { TenantChatsService } from '../telegram-bot/tenant-chats.service';
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
@@ -20,75 +21,59 @@ export class ReportsService {
     private readonly telegram: TelegramService,
     private readonly tenants: TenantsService,
     @InjectRepository(ReportDeliveryEntity) private readonly deliveries: Repository<ReportDeliveryEntity>,
+    private readonly tenantChats: TenantChatsService,
   ) {}
 
-  /**
-   * Called by the BullMQ worker / CLI trigger-report when sending live.
-   * Sends two Telegram messages (yesterday summary + today forecast) with
-   * per-kind idempotency: if a row already exists for a given kind, that kind
-   * is skipped. Each kind is attempted independently.
-   */
   async generateAndDeliver(tenantId: string, reportDate: string): Promise<void> {
     const yesterdayDateString = this.subtractDays(reportDate, 1);
-
     const data = await this.metrics.buildDailyReportData(tenantId, reportDate);
     data.yesterday.aiInsight = await this.ai.getInsight(tenantId, data);
 
     const tenant = await this.tenants.findById(tenantId);
     if (!tenant) throw new Error(`Tenant ${tenantId} not found`);
-    if (!tenant.telegramChatId) throw new Error(`Tenant ${tenantId} has no telegram_chat_id`);
 
-    const chatId = Number(tenant.telegramChatId);
+    const chats = await this.tenantChats.listSubscribedChats(tenantId);
+    if (chats.length === 0) {
+      this.log.warn(`Tenant ${tenantId} has no subscribed chats, skip delivery`);
+      return;
+    }
+
     const kinds = ['yesterday', 'today'] as const;
-    let yesterdaySent = false;
+    const renderers = {
+      yesterday: () => renderYesterdayMessage(data),
+      today: () => renderTodayMessage(data),
+    };
 
     for (const kind of kinds) {
-      // Idempotency check — only skip when a row with status='sent' already exists.
-      // A 'failed' row does NOT block retries.
-      const already = await this.deliveries.findOne({
-        where: { tenantId, date: yesterdayDateString, messageKind: kind, status: 'sent' },
-      });
-      if (already) {
-        this.log.log(`Report kind='${kind}' already delivered for ${tenantId} ${yesterdayDateString}, skip`);
-        if (kind === 'yesterday') yesterdaySent = false; // was pre-existing, not just sent
-        continue;
-      }
-
-      // Delay between messages so they appear in order in Telegram
-      if (kind === 'today' && yesterdaySent) {
-        await sleep(1000);
-      }
-
-      const text = kind === 'yesterday'
-        ? renderYesterdayMessage(data)
-        : renderTodayMessage(data);
-
-      try {
-        const { messageId } = await this.telegram.sendReport(chatId, text);
-        // Use save() so a prior failed row (same PK) is overwritten rather than causing a PK collision
-        await this.deliveries.save({
-          tenantId,
-          date: yesterdayDateString,
-          messageKind: kind,
-          messageId: messageId || null,
-          sentAt: new Date(),
-          status: 'sent',
-          error: null,
+      const text = renderers[kind]();
+      for (const chat of chats) {
+        const chatId = Number(chat.chatId);
+        const already = await this.deliveries.findOne({
+          where: { tenantId, date: yesterdayDateString, messageKind: kind, chatId, status: 'sent' },
         });
-        this.log.log(`Report kind='${kind}' delivered to ${tenant.salonName} (${yesterdayDateString})`);
-        if (kind === 'yesterday') yesterdaySent = true;
-      } catch (err: any) {
-        await this.deliveries.save({
-          tenantId,
-          date: yesterdayDateString,
-          messageKind: kind,
-          messageId: null,
-          sentAt: null,
-          status: 'failed',
-          error: String(err?.message ?? err).slice(0, 2000),
-        });
-        throw err;
+        if (already) continue;
+
+        try {
+          const { messageId } = await this.telegram.sendReport(chatId, text);
+          await this.deliveries.save({
+            tenantId, date: yesterdayDateString, messageKind: kind, chatId,
+            messageId: messageId || null, sentAt: new Date(), status: 'sent', error: null,
+          });
+        } catch (err: any) {
+          const code = err?.response?.error_code;
+          await this.deliveries.save({
+            tenantId, date: yesterdayDateString, messageKind: kind, chatId,
+            messageId: null, sentAt: null, status: 'failed',
+            error: String(err?.message ?? err).slice(0, 2000),
+          });
+          if ((code === 403 || code === 400) && chat.role === 'member') {
+            await this.tenantChats.setSubscribed(tenantId, chatId, false);
+            this.log.warn(`Auto-unsubscribed member chat=${chatId} tenant=${tenantId} (code=${code})`);
+          }
+        }
+        await sleep(250);
       }
+      if (kind === 'yesterday') await sleep(1000);
     }
   }
 
@@ -99,11 +84,7 @@ export class ReportsService {
   async buildMessages(tenantId: string, reportDate: string): Promise<{ yesterday: string; today: string }> {
     const data = await this.metrics.buildDailyReportData(tenantId, reportDate);
     data.yesterday.aiInsight = await this.ai.getInsight(tenantId, data);
-
-    return {
-      yesterday: renderYesterdayMessage(data),
-      today: renderTodayMessage(data),
-    };
+    return { yesterday: renderYesterdayMessage(data), today: renderTodayMessage(data) };
   }
 
   private subtractDays(date: string, n: number): string {

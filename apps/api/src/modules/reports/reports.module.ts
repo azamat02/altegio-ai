@@ -11,6 +11,7 @@ import { AiInsightLogEntity } from './entities/ai-insight-log.entity';
 import { ReportDeliveryEntity } from './entities/report-delivery.entity';
 import { TelegramModule } from '../telegram/telegram.module';
 import { TenantsModule } from '../tenants/tenants.module';
+import { TelegramBotModule } from '../telegram-bot/telegram-bot.module';
 import { loadConfig } from '../../config/app.config';
 
 const ANTHROPIC_ADAPTER = 'ANTHROPIC_ADAPTER';
@@ -20,6 +21,7 @@ const ANTHROPIC_ADAPTER = 'ANTHROPIC_ADAPTER';
     MetricsModule,
     TelegramModule,
     TenantsModule,
+    TelegramBotModule,
     TypeOrmModule.forFeature([AiInsightLogEntity, ReportDeliveryEntity]),
     BullModule.registerQueue({ name: 'reports' }),
   ],
