@@ -11,7 +11,7 @@ describe('ExtendReportDeliveriesPk1700000014000', () => {
       type: 'postgres',
       url: container.getConnectionUri(),
       entities: [],
-      migrations: [__dirname + '/../*.{ts,js}'],
+      migrations: [__dirname + '/../../src/db/migrations/*.{ts,js}'],
       migrationsRun: false,
     });
     await ds.initialize();

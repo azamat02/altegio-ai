@@ -28,7 +28,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm -F @altegio/shared build
-      - run: pnpm -F @altegio/api test -- --runInBand
+      - run: pnpm -F @altegio/api test
       - env:
           DATABASE_URL: postgresql://test:test@localhost:5432/altegio_test
           REDIS_URL: redis://localhost:6379
