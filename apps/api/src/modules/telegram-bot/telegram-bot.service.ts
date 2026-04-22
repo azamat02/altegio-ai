@@ -1,6 +1,6 @@
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, QueryRunner, Repository } from 'typeorm';
 import { Telegraf } from 'telegraf';
 import { loadConfig } from '../../config/app.config';
 import { TenantChatsService } from './tenant-chats.service';
@@ -31,7 +31,7 @@ const LOCK_RETRY_MS = 30_000;
 export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
   private readonly log = new Logger(TelegramBotService.name);
   private bot: Telegraf<BotContext> | null = null;
-  private lockConn: any = null;
+  private lockRunner: QueryRunner | null = null;
   private retryTimer: NodeJS.Timeout | null = null;
   private stopped = false;
 
@@ -100,17 +100,20 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async acquireLock(): Promise<boolean> {
+    const qr = this.ds.createQueryRunner();
     try {
-      this.lockConn = await (this.ds.driver as any).obtainMasterConnection();
-      const res = await this.lockConn.query(`SELECT pg_try_advisory_lock($1) AS got`, [LOCK_KEY]);
-      const got = res?.rows?.[0]?.got ?? res?.[0]?.got;
-      if (!got) {
-        try { await (this.ds.driver as any).releaseMasterConnection?.(this.lockConn); } catch {}
-        this.lockConn = null;
+      await qr.connect();
+      const res = await qr.query(`SELECT pg_try_advisory_lock($1) AS got`, [LOCK_KEY]);
+      const got = Array.isArray(res) ? res[0]?.got : res?.rows?.[0]?.got;
+      if (got === true) {
+        this.lockRunner = qr;
+        return true;
       }
-      return got === true;
+      await qr.release();
+      return false;
     } catch (err: any) {
       this.log.error(`acquireLock failed: ${err?.message}`);
+      try { await qr.release(); } catch {}
       return false;
     }
   }
@@ -120,9 +123,9 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
     if (this.retryTimer) clearTimeout(this.retryTimer);
     try { this.bot?.stop('SIGTERM'); } catch {}
     try {
-      if (this.lockConn) {
-        await this.lockConn.query(`SELECT pg_advisory_unlock($1)`, [LOCK_KEY]);
-        await (this.ds.driver as any).releaseMasterConnection?.(this.lockConn);
+      if (this.lockRunner) {
+        await this.lockRunner.query(`SELECT pg_advisory_unlock($1)`, [LOCK_KEY]);
+        await this.lockRunner.release();
       }
     } catch {}
   }
