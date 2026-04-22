@@ -47,7 +47,8 @@ describe('ExtendReportDeliveriesPk1700000014000', () => {
   });
 
   it('backfills chat_id in report_deliveries from tenants.telegram_chat_id on migration up', async () => {
-    // Roll back migration 14 only (one undo).
+    // Roll back to before migration 14 (undo 15, then 14).
+    await ds.undoLastMigration();
     await ds.undoLastMigration();
 
     // Seed a tenant with telegram_chat_id and a report_deliveries row.

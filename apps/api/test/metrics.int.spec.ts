@@ -189,13 +189,31 @@ describe('MetricsService.monthlyGoal (int)', () => {
 
   it('returns target/mtd/pct with 3 full prior months and 60+ days of history', async () => {
     // avg of Jan(30000)+Feb(60000)+Mar(90000) = 60000; target = 66000
-    // mtd for April up to (exclusive) 2026-04-19 = 10000 + 5000 = 15000
-    // pct = round(15000/66000*100) = 23
+    // mtd for April through 2026-04-19 inclusive = 10000 + 5000 = 15000
+    // expectedMtd = 66000 * 19/30 = 41800
+    // pct = round(15000/41800*100) = 36
     const result = await svc.monthlyGoal(tenantId, '2026-04-19', 'UTC');
     expect(result).not.toBeNull();
     expect(result!.target).toBe(66000);
     expect(result!.mtd).toBe(15000);
-    expect(result!.pct).toBe(23);
+    expect(result!.expectedMtd).toBe(41800);
+    expect(result!.pct).toBe(36);
+    expect(result!.manual).toBe(false);
+  });
+
+  it('uses manual monthly_goal when set (pace-based %)', async () => {
+    await db.ds.query(`UPDATE tenants SET monthly_goal = 300000 WHERE id = $1`, [tenantId]);
+    // expectedMtd = 300000 * 19/30 = 190000
+    // pct = round(15000/190000*100) = 8
+    const result = await svc.monthlyGoal(tenantId, '2026-04-19', 'UTC');
+    expect(result).not.toBeNull();
+    expect(result!.target).toBe(300000);
+    expect(result!.mtd).toBe(15000);
+    expect(result!.expectedMtd).toBe(190000);
+    expect(result!.pct).toBe(8);
+    expect(result!.manual).toBe(true);
+    // Clean up for next test
+    await db.ds.query(`UPDATE tenants SET monthly_goal = NULL WHERE id = $1`, [tenantId]);
   });
 
   it('returns null when history is less than 60 days before referenceDate', async () => {
