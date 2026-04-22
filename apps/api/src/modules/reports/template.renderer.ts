@@ -89,19 +89,40 @@ export function renderYesterdayMessage(data: DailyReportData): string {
     lines.push(`• Загрузка:     ${fmtPct(y.utilizationPct)}`);
   }
 
-  // Monthly goal — only when available
+  // Monthly goal — verbose block when available
   if (
     y.monthlyGoalPct !== null &&
     y.monthlyGoalMtd !== null &&
     y.monthlyGoalTarget !== null &&
     y.monthlyGoalExpectedMtd !== null
   ) {
-    const mtdM = (y.monthlyGoalMtd / 1_000_000).toFixed(1);
-    const expectedM = (y.monthlyGoalExpectedMtd / 1_000_000).toFixed(1);
+    const d = new Date(y.date + 'T00:00:00Z');
+    const year = d.getUTCFullYear();
+    const monthIx = d.getUTCMonth();
+    const day = d.getUTCDate();
+    const daysInMonth = new Date(Date.UTC(year, monthIx + 1, 0)).getUTCDate();
+
+    const dailyNorm = y.monthlyGoalTarget / daysInMonth;
+    const yesterdayPctOfDaily = dailyNorm > 0
+      ? Math.round((y.revenue / dailyNorm) * 100)
+      : null;
+
     const targetM = (y.monthlyGoalTarget / 1_000_000).toFixed(1);
-    lines.push(
-      `• План месяца:  ${fmtPct(y.monthlyGoalPct)} (${mtdM}М из ${expectedM}М к этому дню · цель ${targetM}М)`,
-    );
+    const dailyM = (dailyNorm / 1_000_000).toFixed(1);
+    const expectedM = (y.monthlyGoalExpectedMtd / 1_000_000).toFixed(1);
+    const mtdM = (y.monthlyGoalMtd / 1_000_000).toFixed(1);
+    const yesterdayM = (y.revenue / 1_000_000).toFixed(1);
+
+    lines.push('');
+    lines.push('💰 План месяца');
+    lines.push(`Цель:       ${targetM}М\u00a0₸ (${dailyM}М\u00a0₸ в день)`);
+    lines.push(`Прошло:     ${day} из ${daysInMonth} дней`);
+    lines.push(`Ожидалось:  ${expectedM}М\u00a0₸`);
+    lines.push(`Факт:       ${mtdM}М\u00a0₸`);
+    lines.push(`Темп:       ${fmtPct(y.monthlyGoalPct)}`);
+    if (yesterdayPctOfDaily !== null) {
+      lines.push(`Вчера:      ${yesterdayM}М\u00a0₸ из ${dailyM}М нормы (${yesterdayPctOfDaily}%)`);
+    }
   }
 
   // Top staff
