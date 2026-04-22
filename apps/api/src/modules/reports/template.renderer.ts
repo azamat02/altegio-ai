@@ -93,11 +93,15 @@ export function renderYesterdayMessage(data: DailyReportData): string {
   if (
     y.monthlyGoalPct !== null &&
     y.monthlyGoalMtd !== null &&
-    y.monthlyGoalTarget !== null
+    y.monthlyGoalTarget !== null &&
+    y.monthlyGoalExpectedMtd !== null
   ) {
     const mtdM = (y.monthlyGoalMtd / 1_000_000).toFixed(1);
+    const expectedM = (y.monthlyGoalExpectedMtd / 1_000_000).toFixed(1);
     const targetM = (y.monthlyGoalTarget / 1_000_000).toFixed(1);
-    lines.push(`• План месяца:  ${fmtPct(y.monthlyGoalPct)} (${mtdM}М из ${targetM}М)`);
+    lines.push(
+      `• План месяца:  ${fmtPct(y.monthlyGoalPct)} (${mtdM}М из ${expectedM}М к этому дню · цель ${targetM}М)`,
+    );
   }
 
   // Top staff

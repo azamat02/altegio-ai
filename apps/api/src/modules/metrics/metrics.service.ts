@@ -67,9 +67,41 @@ export class MetricsService {
     tenantId: string,
     referenceDate: string,
     tz: string,
-  ): Promise<{ target: number; mtd: number; pct: number } | null> {
-    // Gate: earliest record must be at least 60 days before referenceDate
+  ): Promise<{ target: number; mtd: number; pct: number; expectedMtd: number; manual: boolean } | null> {
     const refD = new Date(referenceDate + 'T00:00:00Z');
+    const refYear = refD.getUTCFullYear();
+    const refMonth = refD.getUTCMonth() + 1; // 1-based
+    const refDay = refD.getUTCDate();
+    const daysInMonth = new Date(Date.UTC(refYear, refMonth, 0)).getUTCDate();
+
+    // MTD: from 1st of refDate's month THROUGH referenceDate inclusive (yesterday is fully closed).
+    const mtdStart = `${refYear}-${String(refMonth).padStart(2, '0')}-01`;
+    const [mtdRow] = await this.ds.query(
+      `SELECT COALESCE(SUM(cost), 0)::numeric AS mtd
+       FROM records
+       WHERE tenant_id = $1 AND attendance = 1
+         AND (datetime AT TIME ZONE $4)::date >= $2
+         AND (datetime AT TIME ZONE $4)::date <= $3`,
+      [tenantId, mtdStart, referenceDate, tz],
+    );
+    const mtd = Math.round(Number(mtdRow.mtd));
+
+    // Prefer tenant's manually-set monthly_goal.
+    const [tenantRow] = await this.ds.query(
+      `SELECT monthly_goal FROM tenants WHERE id = $1`,
+      [tenantId],
+    );
+    const manualGoal = tenantRow?.monthly_goal != null ? Number(tenantRow.monthly_goal) : null;
+
+    if (manualGoal && manualGoal > 0) {
+      const expectedMtd = Math.round(manualGoal * (refDay / daysInMonth));
+      if (expectedMtd <= 0) return null;
+      const pct = Math.round((mtd / expectedMtd) * 100);
+      if (!isFinite(pct)) return null;
+      return { target: manualGoal, mtd, pct, expectedMtd, manual: true };
+    }
+
+    // Fallback: auto-target from 3-month average × 1.1, 60-day history gate.
     const cutoff = new Date(refD.getTime() - 60 * 86_400_000);
     const cutoffStr = cutoff.toISOString().slice(0, 10);
 
@@ -81,10 +113,6 @@ export class MetricsService {
     );
     if (!earliest.first_day || earliest.first_day > cutoffStr) return null;
 
-    const refYear = refD.getUTCFullYear();
-    const refMonth = refD.getUTCMonth() + 1; // 1-based
-
-    // The 3 calendar months immediately before refDate's month
     const prevMonths: Array<{ start: string; end: string }> = [];
     for (let i = 1; i <= 3; i++) {
       let y = refYear;
@@ -96,7 +124,6 @@ export class MetricsService {
       prevMonths.push({ start, end });
     }
 
-    // Monthly revenue for each of the 3 prior months (TZ-aware)
     const monthRevenues = await Promise.all(
       prevMonths.map(({ start, end }) =>
         this.ds.query(
@@ -108,27 +135,15 @@ export class MetricsService {
         ),
       ),
     );
-    const avgPrev =
-      monthRevenues.reduce((sum, r) => sum + Number(r[0].rev), 0) / 3;
+    const avgPrev = monthRevenues.reduce((sum, r) => sum + Number(r[0].rev), 0) / 3;
     const target = Math.round(avgPrev * 1.1);
-
-    // Guard against zero/NaN target
     if (!target || !isFinite(target)) return null;
 
-    // MTD: from first day of refDate's month up to (exclusive) referenceDate (TZ-aware)
-    const mtdStart = `${refYear}-${String(refMonth).padStart(2, '0')}-01`;
-    const [mtdRow] = await this.ds.query(
-      `SELECT COALESCE(SUM(cost), 0)::numeric AS mtd
-       FROM records
-       WHERE tenant_id = $1 AND attendance = 1
-         AND (datetime AT TIME ZONE $4)::date >= $2
-         AND (datetime AT TIME ZONE $4)::date < $3`,
-      [tenantId, mtdStart, referenceDate, tz],
-    );
-    const mtd = Math.round(Number(mtdRow.mtd));
-    const pct = Math.round((mtd / target) * 100);
+    const expectedMtd = Math.round(target * (refDay / daysInMonth));
+    if (expectedMtd <= 0) return null;
+    const pct = Math.round((mtd / expectedMtd) * 100);
     if (!isFinite(pct)) return null;
-    return { target, mtd, pct };
+    return { target, mtd, pct, expectedMtd, manual: false };
   }
 
   // ---------------------------------------------------------------------------
@@ -318,6 +333,8 @@ export class MetricsService {
         monthlyGoalPct: goal?.pct ?? null,
         monthlyGoalTarget: goal?.target ?? null,
         monthlyGoalMtd: goal?.mtd ?? null,
+        monthlyGoalExpectedMtd: goal?.expectedMtd ?? null,
+        monthlyGoalManual: goal?.manual ?? false,
         topStaff,
         aiInsight: null,
       },

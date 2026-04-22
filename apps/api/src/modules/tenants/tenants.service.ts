@@ -62,4 +62,8 @@ export class TenantsService {
   async setReportEnabled(tenantId: string, enabled: boolean): Promise<void> {
     await this.repo.update({ id: tenantId }, { reportEnabled: enabled });
   }
+
+  async setMonthlyGoal(tenantId: string, amount: number | null): Promise<void> {
+    await this.repo.update({ id: tenantId }, { monthlyGoal: amount });
+  }
 }

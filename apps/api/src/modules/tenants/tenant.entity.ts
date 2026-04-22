@@ -32,6 +32,9 @@ export class TenantEntity {
   @Column({ type: 'int', name: 'working_hours_per_day', default: 10 })
   workingHoursPerDay!: number;
 
+  @Column({ type: 'bigint', name: 'monthly_goal', nullable: true })
+  monthlyGoal!: number | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
 

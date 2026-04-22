@@ -113,8 +113,9 @@ export function buildPrompt(data: DailyReportData): string {
   if (y.utilizationPct !== null) lines.push(`Загрузка вчера: ${pct(y.utilizationPct)}`);
 
   if (y.monthlyGoalPct !== null) {
-    lines.push(`План месяца: ${pct(y.monthlyGoalPct)} выполнено`);
+    lines.push(`Темп выполнения плана: ${pct(y.monthlyGoalPct)} (% от ожидаемого на этот день месяца)`);
     if (y.monthlyGoalMtd !== null) lines.push(`  — накоплено MTD: ${rub(y.monthlyGoalMtd)}`);
+    if (y.monthlyGoalExpectedMtd !== null) lines.push(`  — должно быть к этому дню: ${rub(y.monthlyGoalExpectedMtd)}`);
     if (y.monthlyGoalTarget !== null) lines.push(`  — цель месяца: ${rub(y.monthlyGoalTarget)}`);
   }
 

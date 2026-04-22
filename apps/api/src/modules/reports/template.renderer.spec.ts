@@ -26,7 +26,7 @@ describe('renderYesterdayMessage', () => {
 • Отменили:     4 (4%)
 • Средний чек:  31\u00a0182\u00a0₸
 • Загрузка:     64%
-• План месяца:  71% (19.5М из 27.5М)
+• План месяца:  106% (19.5М из 18.3М к этому дню · цель 27.5М)
 
 🏆 Топ-3 мастера
 1. Оксана Гарифзянова — 450\u00a0000\u00a0₸ (2 визита)
@@ -45,7 +45,7 @@ describe('renderYesterdayMessage', () => {
 
   it('omits План месяца when monthlyGoalPct is null', () => {
     const txt = renderYesterdayMessage(
-      withY({ monthlyGoalPct: null, monthlyGoalMtd: null, monthlyGoalTarget: null }),
+      withY({ monthlyGoalPct: null, monthlyGoalMtd: null, monthlyGoalTarget: null, monthlyGoalExpectedMtd: null }),
     );
     expect(txt).not.toContain('План месяца');
   });

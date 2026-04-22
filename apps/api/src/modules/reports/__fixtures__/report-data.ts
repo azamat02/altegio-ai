@@ -20,9 +20,11 @@ export const baseFixture: DailyReportData = {
     cancelled: 4,
     avgCheck: 31_182,
     utilizationPct: 64,
-    monthlyGoalPct: 71,
+    monthlyGoalPct: 106,
     monthlyGoalTarget: 27_500_000,
     monthlyGoalMtd: 19_500_000,
+    monthlyGoalExpectedMtd: 18_333_333,
+    monthlyGoalManual: true,
     topStaff: [
       { name: 'Оксана Гарифзянова', revenue: 450_000, visits: 2 },
       { name: 'Гульнара', revenue: 293_880, visits: 11 },

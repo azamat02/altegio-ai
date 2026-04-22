@@ -37,6 +37,8 @@ const minimalFixture: DailyReportData = {
     monthlyGoalPct: null,
     monthlyGoalTarget: null,
     monthlyGoalMtd: null,
+    monthlyGoalExpectedMtd: null,
+    monthlyGoalManual: false,
     topStaff: [],
     aiInsight: null,
   },
@@ -99,7 +101,7 @@ describe('buildPrompt', () => {
   it('includes Загрузка and План месяца when utilizationPct and monthlyGoalPct are non-null', () => {
     const prompt = buildPrompt(baseFixture);
     expect(prompt).toContain('Загрузка вчера');
-    expect(prompt).toContain('План месяца');
+    expect(prompt).toContain('Темп выполнения плана');
   });
 
   it('includes today utilization when non-null', () => {
@@ -116,7 +118,7 @@ describe('buildPrompt', () => {
   it('skips Загрузка and План месяца lines when those fields are null', () => {
     const prompt = buildPrompt(minimalFixture);
     expect(prompt).not.toContain('Загрузка вчера');
-    expect(prompt).not.toContain('План месяца');
+    expect(prompt).not.toContain('Темп выполнения плана');
   });
 
   it('includes salon name and timezone', () => {

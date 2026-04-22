@@ -13,6 +13,8 @@ export type YesterdayBlock = {
   monthlyGoalPct: number | null;
   monthlyGoalTarget: number | null;
   monthlyGoalMtd: number | null;
+  monthlyGoalExpectedMtd: number | null;
+  monthlyGoalManual: boolean;
   topStaff: TopStaff[];
   aiInsight: string | null;
 };
