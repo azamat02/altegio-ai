@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule, getRepositoryToken } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bullmq';
 import { Repository } from 'typeorm';
@@ -21,7 +21,7 @@ const ANTHROPIC_ADAPTER = 'ANTHROPIC_ADAPTER';
     MetricsModule,
     TelegramModule,
     TenantsModule,
-    TelegramBotModule,
+    forwardRef(() => TelegramBotModule),
     TypeOrmModule.forFeature([AiInsightLogEntity, ReportDeliveryEntity]),
     BullModule.registerQueue({ name: 'reports' }),
   ],

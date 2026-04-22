@@ -16,6 +16,8 @@ const schema = z.object({
   SENTRY_DSN: z.string().optional().or(z.literal('').transform(() => undefined)),
   LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
   SCHEDULER_ENABLED: z.enum(['true', 'false']).default('false'),
+  BOT_ENABLED: z.enum(['true', 'false']).default('false'),
+  BOT_USERNAME: z.string().optional().or(z.literal('').transform(() => undefined)),
 });
 
 export type AppConfig = z.infer<typeof schema>;

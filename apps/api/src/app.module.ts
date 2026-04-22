@@ -8,6 +8,7 @@ import { SyncModule } from './modules/sync/sync.module';
 import { MetricsModule } from './modules/metrics/metrics.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { TelegramModule } from './modules/telegram/telegram.module';
+import { TelegramBotModule } from './modules/telegram-bot/telegram-bot.module';
 import { SchedulerModule } from './modules/scheduler/scheduler.module';
 import { HealthModule } from './modules/health/health.module';
 
@@ -22,6 +23,7 @@ import { HealthModule } from './modules/health/health.module';
     MetricsModule,
     ReportsModule,
     TelegramModule,
+    TelegramBotModule,
     SchedulerModule.forRoot(),
     HealthModule,
   ],
