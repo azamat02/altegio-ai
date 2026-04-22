@@ -2,13 +2,46 @@
 
 ## Состояние
 
+**Phase 1, 1.1 отгружены в прод; Phase 1.2 реализована локально, готова к деплою на `altegio.tolemflow.kz`.**
+
+### Phase 1.2 (локально, не задеплоено)
+
+- 22 коммита от `4ae84e5` до `728ce94`. Spec: [docs/superpowers/specs/2026-04-21-phase-1-2-bot-commands-design.md](docs/superpowers/specs/2026-04-21-phase-1-2-bot-commands-design.md). Plan: [docs/superpowers/plans/2026-04-21-altegio-ai-phase-1-2.md](docs/superpowers/plans/2026-04-21-altegio-ai-phase-1-2.md).
+- 4 новых миграции: `tenant_chats` (N:M владельцы/члены), `telegram_invite_codes` (6-цифровые коды, 24ч TTL), `telegram_bot_logs` (аудит + rate-limit), расширение PK `report_deliveries` до `(tenant_id, date, message_kind, chat_id)` с backfill из `tenants.telegram_chat_id`.
+- Новый модуль `apps/api/src/modules/telegram-bot/`: inbound-бот на Telegraf long-polling, armed Postgres advisory lock на ключе `8823911`. `BOT_ENABLED` env-флаг (default false).
+- Команды: `/start`, `/help`, `/link <код>`, `/report [YYYY-MM-DD]`, `/status`, `/subscribe`, `/unsubscribe`, `/invite` (owner only), `/sync` (owner only, async + follow-up).
+- `ReportsService.generateAndDeliver` теперь fan-outит по всем `tenant_chats WHERE subscribed=true`, per-chat идемпотентность через `(tenant_id, date, kind, chat_id)` PK. 403/400 для member-чатов → auto-unsubscribe. `syncTenant` возвращает `{recordsFetched}` для follow-up сообщения.
+- CLI `link-telegram` пишет и в `tenants.telegram_chat_id`, и в `tenant_chats(role='owner')`.
+- 103 теста зелёные, nest build clean.
+
+### Rollout Phase 1.2 на VPS
+
+1. В `/opt/altegio-ai/.env`: `BOT_ENABLED=true`.
+2. `cd /opt/altegio-ai && ./deploy/deploy.sh` (4 новых миграции применятся автоматически).
+3. Проверить логи: «Telegram bot polling started».
+4. Smoke:
+   - `/start` в owner-чат BrowUp → ответ.
+   - `/invite` → 6-цифровой код.
+   - Из второго тестового чата `/link <код>` → «Подключено».
+   - `/report` оттуда → два сообщения.
+   - Завтра утром 09:00 Almaty — оба чата получают scheduled report.
+5. `/unsubscribe` в тестовом чате → завтра только owner получает.
+
+---
+
+## Ранее отгруженные фазы
+
 **Phase 1 и Phase 1.1 отгружены в прод на `altegio.tolemflow.kz`.**
 
 - Phase 1 (`v0.1.0-phase1`): один утренний Telegram-отчёт в 09:00 Asia/Almaty → owner-chat. Acceptance: [docs/superpowers/plans/2026-04-20-altegio-ai-phase-1-acceptance.md](docs/superpowers/plans/2026-04-20-altegio-ai-phase-1-acceptance.md) (блок «Phase 1»).
 - Phase 1.1 (`v0.2.0-phase1-1`, коммит `0ec74fd`): два сообщения (yesterday + today), capacity-aware загрузка через `/company/{id}/staff/schedule`, per-category fill rates с настоящими именами категорий из `/service_categories`, план месяца (avg(3m)×1.1), TZ-aware запросы, retry-safe failed deliveries. Acceptance: тот же файл, второй блок. Первая живая пара сообщений доставлена пользователю 2026-04-21 17:12 UTC.
 - BrowUp tenant `fe952c56-af0a-4f33-aa00-27b8dd293a8a` на VPS, 11 546 записей, 10 миграций применены, скедулер армирован на 09:00 Almaty.
 
-## Что строим дальше — Phase 1.2: команды бота + мульти-чат подписки
+## Что строим дальше — после деплоя Phase 1.2
+
+Phase 1.2 локально готова (см. раздел выше). После rollout на VPS и smoke-тестов — переключаемся на customer development (см. раздел «Приоритет по времени»). Ниже — исторический контекст брейнсторма Phase 1.2.
+
+## Архив — исходный брейнсторм Phase 1.2
 
 **Цель:** дать владельцу инициировать анализ самому и подключать вторых пользователей (бухгалтер, сеть-менеджер) без CLI.
 
