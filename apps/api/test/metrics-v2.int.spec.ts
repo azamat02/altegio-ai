@@ -177,6 +177,69 @@ describe('MetricsService.retentionForDate (int)', () => {
 });
 
 // ---------------------------------------------------------------------------
+// sourceBreakdown
+// ---------------------------------------------------------------------------
+
+describe('MetricsService.sourceBreakdown (int)', () => {
+  let db: TestDb;
+  let svc: MetricsService;
+  let tenantId: string;
+
+  beforeAll(async () => {
+    db = await startTestDb();
+    const tenants = new TenantsService(
+      db.ds.getRepository(TenantEntity),
+      new TokenCipher(process.env.APP_ENCRYPTION_KEY!),
+    );
+    svc = new MetricsService(db.ds, tenants);
+    const t = await tenants.create({ salonName: 'SB', locationId: 64, altegioToken: 't', timezone: 'UTC' });
+    tenantId = t.id;
+
+    await db.ds.query(
+      `INSERT INTO staff (tenant_id, altegio_staff_id, name, fired, bookable) VALUES ($1, 1, 'A', false, true)`,
+      [tenantId],
+    );
+
+    // 2026-05-10: 3 Online widget (15000), 2 Altegio.me App (7000), 2 direct=NULL (5000), 1 no-show (excluded)
+    await db.ds.query(
+      `INSERT INTO records (tenant_id, altegio_record_id, altegio_staff_id, datetime, seance_length, cost, attendance, paid_full, is_online, deleted, record_source) VALUES
+       ($1, 40, 1, '2026-05-10 09:00+00', 3600, 5000, 1, 1, false, false, 'Online widget'),
+       ($1, 41, 1, '2026-05-10 10:00+00', 3600, 6000, 1, 1, false, false, 'Online widget'),
+       ($1, 42, 1, '2026-05-10 11:00+00', 3600, 4000, 1, 1, false, false, 'Online widget'),
+       ($1, 43, 1, '2026-05-10 12:00+00', 3600, 3000, 1, 1, false, false, 'Altegio.me App'),
+       ($1, 44, 1, '2026-05-10 13:00+00', 3600, 4000, 1, 1, false, false, 'Altegio.me App'),
+       ($1, 45, 1, '2026-05-10 14:00+00', 3600, 2000, 1, 1, false, false, NULL),
+       ($1, 46, 1, '2026-05-10 15:00+00', 3600, 3000, 1, 1, false, false, NULL),
+       ($1, 47, 1, '2026-05-10 16:00+00', 3600, 9999, 2, 0, false, false, 'Online widget')`,
+      [tenantId],
+    );
+  }, 60000);
+
+  afterAll(async () => { await db.stop(); });
+
+  it('groups attended records by source with shares', async () => {
+    const rows = await svc.sourceBreakdown(tenantId, '2026-05-10', 'UTC');
+    expect(rows.length).toBe(3);
+    // 7 attended total → Online 3/7=43%, App 2/7=29%, Direct 2/7=29%
+    const widget = rows.find((r) => r.source === 'Online widget')!;
+    expect(widget.visits).toBe(3);
+    expect(widget.revenue).toBe(15000);
+    expect(widget.sharePct).toBe(43);
+    const app = rows.find((r) => r.source === 'Altegio.me App')!;
+    expect(app.visits).toBe(2);
+    expect(app.revenue).toBe(7000);
+    const direct = rows.find((r) => r.source === 'Прямая запись')!;
+    expect(direct.visits).toBe(2);
+    expect(direct.revenue).toBe(5000);
+  });
+
+  it('returns empty array when no attended records', async () => {
+    const rows = await svc.sourceBreakdown(tenantId, '2026-05-20', 'UTC');
+    expect(rows).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // revenueDynamics
 // ---------------------------------------------------------------------------
 

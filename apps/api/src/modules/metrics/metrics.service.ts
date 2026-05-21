@@ -535,6 +535,35 @@ export class MetricsService {
   }
 
   // ---------------------------------------------------------------------------
+  // Source breakdown: visits + revenue by record_from (NULL → "Прямая запись")
+  // ---------------------------------------------------------------------------
+
+  async sourceBreakdown(
+    tenantId: string,
+    date: string,
+    tz: string,
+  ): Promise<Array<{ source: string; visits: number; revenue: number; sharePct: number }>> {
+    const rows = await this.ds.query(
+      `SELECT COALESCE(record_source, 'Прямая запись') AS source,
+              COUNT(*)::int AS visits,
+              COALESCE(SUM(cost), 0)::numeric AS revenue
+       FROM records
+       WHERE tenant_id = $1 AND attendance = 1
+         AND (datetime AT TIME ZONE $3)::date = $2
+       GROUP BY COALESCE(record_source, 'Прямая запись')
+       ORDER BY visits DESC, revenue DESC`,
+      [tenantId, date, tz],
+    );
+    const totalVisits = rows.reduce((s: number, r: any) => s + Number(r.visits), 0);
+    return rows.map((r: any) => ({
+      source: r.source,
+      visits: Number(r.visits),
+      revenue: Math.round(Number(r.revenue)),
+      sharePct: totalVisits > 0 ? Math.round((Number(r.visits) / totalVisits) * 100) : 0,
+    }));
+  }
+
+  // ---------------------------------------------------------------------------
   // Utilities
   // ---------------------------------------------------------------------------
 
