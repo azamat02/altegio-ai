@@ -303,7 +303,7 @@ export class MetricsService {
     if (!tenant) throw new Error(`Tenant ${tenantId} not found`);
     const tz = tenant.timezone;
 
-    const [revenue, avg7, visits, topStaff, utilY, goal, noShow, retention, dynamics] = await Promise.all([
+    const [revenue, avg7, visits, topStaff, utilY, goal, noShow, retention, dynamics, sources] = await Promise.all([
       this.yesterdayRevenue(tenantId, yesterday, tz),
       this.avg7Revenue(tenantId, yesterday, tz),
       this.yesterdayVisits(tenantId, yesterday, tz),
@@ -313,6 +313,7 @@ export class MetricsService {
       this.noShowForDate(tenantId, yesterday, tz),
       this.retentionForDate(tenantId, yesterday, tz),
       this.revenueDynamics(tenantId, yesterday, tz),
+      this.sourceBreakdown(tenantId, yesterday, tz),
     ]);
 
     const [scheduledToday, utilT, categories] = await Promise.all([
@@ -342,6 +343,7 @@ export class MetricsService {
         noShow,
         retention,
         dynamics: { week: dynamics.week, month: dynamics.month },
+        sources,
         aiInsight: null,
       },
       today: {

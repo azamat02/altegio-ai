@@ -13,6 +13,13 @@ export type Retention = {
 export type RevenueWindow = { value: number; prev: number; deltaPct: number | null };
 export type RevenueDynamics = { week: RevenueWindow; month: RevenueWindow };
 
+export type SourceShare = {
+  source: string;
+  visits: number;
+  revenue: number;
+  sharePct: number;
+};
+
 export type YesterdayBlock = {
   date: string;              // 'YYYY-MM-DD'
   revenue: number;
@@ -31,6 +38,7 @@ export type YesterdayBlock = {
   noShow: NoShow;
   retention: Retention;
   dynamics: RevenueDynamics;
+  sources: SourceShare[];
   aiInsight: string | null;
 };
 

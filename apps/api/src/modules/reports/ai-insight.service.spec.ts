@@ -46,6 +46,7 @@ const minimalFixture: DailyReportData = {
       week: { value: 0, prev: 0, deltaPct: null },
       month: { value: 0, prev: 0, deltaPct: null },
     },
+    sources: [],
     aiInsight: null,
   },
   today: {

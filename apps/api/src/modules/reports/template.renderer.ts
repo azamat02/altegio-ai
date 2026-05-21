@@ -155,6 +155,15 @@ export function renderYesterdayMessage(data: DailyReportData): string {
     }
   }
 
+  // Sources — only when there are attended visits
+  if (y.sources.length > 0) {
+    lines.push('');
+    lines.push('📡 Откуда записи');
+    for (const s of y.sources.slice(0, 4)) {
+      lines.push(`• ${s.source} — ${pluralBookings(s.visits)} (${fmtPct(s.sharePct)})`);
+    }
+  }
+
   // Top staff
   if (y.topStaff.length > 0) {
     lines.push('');

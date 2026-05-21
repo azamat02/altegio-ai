@@ -36,6 +36,12 @@ export const baseFixture: DailyReportData = {
       week: { value: 18_200_000, prev: 14_900_000, deltaPct: 22 },
       month: { value: 19_500_000, prev: 17_800_000, deltaPct: 10 },
     },
+    sources: [
+      { source: 'Прямая запись', visits: 58, revenue: 1_800_000, sharePct: 62 },
+      { source: 'Online widget', visits: 28, revenue: 875_000, sharePct: 30 },
+      { source: 'Altegio.me App', visits: 5, revenue: 180_000, sharePct: 5 },
+      { source: 'Partners: Яндекс Карты', visits: 2, revenue: 44_953, sharePct: 3 },
+    ],
     aiInsight: 'Воскресенье показало пик выручки за последние 2 недели. Стоит повторить промо.',
   },
   today: {
