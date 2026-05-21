@@ -98,6 +98,17 @@ describe('RecordsParser', () => {
     expect(parser.toRecordRow('t', dto).altegioServiceId).toBeNull();
   });
 
+  it('maps record_from to recordSource and treats empty string as null', () => {
+    const make = (record_from: string | undefined): AltegioRecordDto => ({
+      id: 1, staff_id: 1, services: [], datetime: '2026-04-19T10:00:00Z',
+      attendance: 1, cost: 0, seance_length: 0, paid_full: 0, deleted: false,
+      record_from,
+    });
+    expect(parser.toRecordRow('t', make('Online widget')).recordSource).toBe('Online widget');
+    expect(parser.toRecordRow('t', make('')).recordSource).toBeNull();
+    expect(parser.toRecordRow('t', make(undefined)).recordSource).toBeNull();
+  });
+
   it('prefers record.length over service.seance_length and carries resource ids', () => {
     const dto: AltegioRecordDto = {
       id: 1, staff_id: 11, services: [{ id: 100, title: 's' }],

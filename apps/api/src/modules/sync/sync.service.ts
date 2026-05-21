@@ -130,7 +130,7 @@ export class SyncService {
     if (rows.length === 0) return;
     // Per-row VALUES approach (unnest with bigint[][] doesn't work in pg driver).
     // Column 13 (resource_instance_ids) is cast explicitly to bigint[].
-    const COLS = 13;
+    const COLS = 14;
     const values = rows
       .map((_, i) => {
         const base = i * COLS;
@@ -144,13 +144,14 @@ export class SyncService {
     const params = rows.flatMap((r) => [
       r.tenantId, r.altegioRecordId, r.altegioStaffId, r.altegioClientId,
       r.altegioServiceId, r.datetime, r.seanceLength, r.cost, r.attendance, r.paidFull,
-      r.isOnline, r.deleted, r.resourceInstanceIds,
+      r.isOnline, r.deleted, r.resourceInstanceIds, r.recordSource,
     ]);
     await this.ds.query(
       `
       INSERT INTO records
         (tenant_id, altegio_record_id, altegio_staff_id, altegio_client_id, altegio_service_id,
-         datetime, seance_length, cost, attendance, paid_full, is_online, deleted, resource_instance_ids)
+         datetime, seance_length, cost, attendance, paid_full, is_online, deleted, resource_instance_ids,
+         record_source)
       VALUES ${values}
       ON CONFLICT (tenant_id, altegio_record_id) DO UPDATE SET
         altegio_staff_id = EXCLUDED.altegio_staff_id,
@@ -164,6 +165,7 @@ export class SyncService {
         is_online = EXCLUDED.is_online,
         deleted = EXCLUDED.deleted,
         resource_instance_ids = EXCLUDED.resource_instance_ids,
+        record_source = EXCLUDED.record_source,
         updated_at = now()
       `,
       params,

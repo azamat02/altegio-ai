@@ -16,4 +16,5 @@ export interface AltegioRecordDto {
   visit_id?: number;
   create_date?: string;
   resource_instance_ids?: number[];
+  record_from?: string;
 }

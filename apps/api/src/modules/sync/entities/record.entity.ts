@@ -40,6 +40,9 @@ export class RecordEntity {
   @Column('boolean', { default: false })
   deleted!: boolean;
 
+  @Column('text', { name: 'record_source', nullable: true })
+  recordSource!: string | null;
+
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt!: Date;
 }

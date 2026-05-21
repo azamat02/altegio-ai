@@ -15,6 +15,7 @@ export interface RecordRow {
   isOnline: boolean;
   deleted: boolean;
   resourceInstanceIds: number[];
+  recordSource: string | null;
 }
 
 function computeCost(dto: AltegioRecordDto): number {
@@ -43,6 +44,7 @@ export class RecordsParser {
       paidFull: dto.paid_full ?? 0,
       isOnline: Boolean(dto.online),
       deleted: Boolean(dto.deleted),
+      recordSource: dto.record_from && dto.record_from.length > 0 ? dto.record_from : null,
     };
   }
 }

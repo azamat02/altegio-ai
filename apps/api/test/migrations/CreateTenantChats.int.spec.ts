@@ -44,7 +44,8 @@ describe('CreateTenantChats1700000011000', () => {
   });
 
   it('backfills tenant_chats from tenants.telegram_chat_id on migration up', async () => {
-    // Roll back past migration 11 (undo 15, 14, 13, 12, 11).
+    // Roll back past migration 11 (undo 16, 15, 14, 13, 12, 11).
+    await ds.undoLastMigration();
     await ds.undoLastMigration();
     await ds.undoLastMigration();
     await ds.undoLastMigration();
