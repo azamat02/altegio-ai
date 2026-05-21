@@ -30,6 +30,12 @@ export const baseFixture: DailyReportData = {
       { name: 'Гульнара', revenue: 293_880, visits: 11 },
       { name: 'Насиба', revenue: 226_799, visits: 5 },
     ],
+    noShow: { count: 2, lostRevenue: 18_000 },
+    retention: { newClients: 31, returningClients: 62, newPct: 33, returningPct: 67 },
+    dynamics: {
+      week: { value: 18_200_000, prev: 14_900_000, deltaPct: 22 },
+      month: { value: 19_500_000, prev: 17_800_000, deltaPct: 10 },
+    },
     aiInsight: 'Воскресенье показало пик выручки за последние 2 недели. Стоит повторить промо.',
   },
   today: {

@@ -1,6 +1,18 @@
 export type TopStaff = { name: string; revenue: number; visits: number };
 export type CategoryFill = { name: string; fillPct: number; visits: number };
 
+export type NoShow = { count: number; lostRevenue: number };
+
+export type Retention = {
+  newClients: number;
+  returningClients: number;
+  newPct: number | null;
+  returningPct: number | null;
+};
+
+export type RevenueWindow = { value: number; prev: number; deltaPct: number | null };
+export type RevenueDynamics = { week: RevenueWindow; month: RevenueWindow };
+
 export type YesterdayBlock = {
   date: string;              // 'YYYY-MM-DD'
   revenue: number;
@@ -16,6 +28,9 @@ export type YesterdayBlock = {
   monthlyGoalExpectedMtd: number | null;
   monthlyGoalManual: boolean;
   topStaff: TopStaff[];
+  noShow: NoShow;
+  retention: Retention;
+  dynamics: RevenueDynamics;
   aiInsight: string | null;
 };
 

@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { TenantsService } from '../tenants/tenants.service';
-import { CategoryFill, DailyReportData, TopStaff } from '@altegio/shared';
+import { CategoryFill, DailyReportData, TopStaff, RevenueDynamics, Retention, NoShow } from '@altegio/shared';
 
 @Injectable()
 export class MetricsService {
@@ -303,13 +303,16 @@ export class MetricsService {
     if (!tenant) throw new Error(`Tenant ${tenantId} not found`);
     const tz = tenant.timezone;
 
-    const [revenue, avg7, visits, topStaff, utilY, goal] = await Promise.all([
+    const [revenue, avg7, visits, topStaff, utilY, goal, noShow, retention, dynamics] = await Promise.all([
       this.yesterdayRevenue(tenantId, yesterday, tz),
       this.avg7Revenue(tenantId, yesterday, tz),
       this.yesterdayVisits(tenantId, yesterday, tz),
       this.yesterdayTopStaff(tenantId, yesterday, tz, 3),
       this.yesterdayUtilization(tenantId, yesterday, tz),
       this.monthlyGoal(tenantId, yesterday, tz),
+      this.noShowForDate(tenantId, yesterday, tz),
+      this.retentionForDate(tenantId, yesterday, tz),
+      this.revenueDynamics(tenantId, yesterday, tz),
     ]);
 
     const [scheduledToday, utilT, categories] = await Promise.all([
@@ -336,6 +339,9 @@ export class MetricsService {
         monthlyGoalExpectedMtd: goal?.expectedMtd ?? null,
         monthlyGoalManual: goal?.manual ?? false,
         topStaff,
+        noShow,
+        retention,
+        dynamics: { week: dynamics.week, month: dynamics.month },
         aiInsight: null,
       },
       today: {
@@ -344,6 +350,187 @@ export class MetricsService {
         utilizationPct: utilT,
         categories,
       },
+    };
+  }
+
+  // ---------------------------------------------------------------------------
+  // No-show count + lost revenue (attendance = 2)
+  // ---------------------------------------------------------------------------
+
+  async noShowForDate(
+    tenantId: string,
+    date: string,
+    tz: string,
+  ): Promise<{ count: number; lostRevenue: number }> {
+    const [row] = await this.ds.query(
+      `SELECT COUNT(*)::int AS cnt,
+              COALESCE(SUM(cost), 0)::numeric AS lost
+       FROM records
+       WHERE tenant_id = $1 AND attendance = 2
+         AND (datetime AT TIME ZONE $3)::date = $2`,
+      [tenantId, date, tz],
+    );
+    return { count: Number(row.cnt), lostRevenue: Math.round(Number(row.lost)) };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Per-staff daily breakdown (attendance = 1)
+  // ---------------------------------------------------------------------------
+
+  async staffDailyBreakdown(
+    tenantId: string,
+    date: string,
+    tz: string,
+  ): Promise<Array<{
+    altegioStaffId: number;
+    name: string;
+    revenue: number;
+    visits: number;
+    avgCheck: number;
+    bookedMinutes: number;
+  }>> {
+    const rows = await this.ds.query(
+      `SELECT s.altegio_staff_id::bigint AS staff_id,
+              s.name,
+              COALESCE(SUM(r.cost) FILTER (WHERE r.attendance = 1), 0)::numeric AS revenue,
+              COUNT(*) FILTER (WHERE r.attendance = 1)::int AS visits,
+              COALESCE(SUM(r.seance_length) FILTER (WHERE r.attendance = 1), 0)::int / 60 AS booked_min
+       FROM records r
+       JOIN staff s ON s.tenant_id = r.tenant_id AND s.altegio_staff_id = r.altegio_staff_id
+       WHERE r.tenant_id = $1 AND (r.datetime AT TIME ZONE $3)::date = $2
+       GROUP BY s.altegio_staff_id, s.name
+       HAVING COUNT(*) FILTER (WHERE r.attendance = 1) > 0
+       ORDER BY revenue DESC`,
+      [tenantId, date, tz],
+    );
+    return rows.map((r: any) => {
+      const revenue = Number(r.revenue);
+      const visits = Number(r.visits);
+      return {
+        altegioStaffId: Number(r.staff_id),
+        name: r.name,
+        revenue: Math.round(revenue),
+        visits,
+        avgCheck: visits ? Math.round(revenue / visits) : 0,
+        bookedMinutes: Number(r.booked_min),
+      };
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Retention: new vs returning clients on a given date
+  // A client is "new" if their first ever attended visit is the given date.
+  // ---------------------------------------------------------------------------
+
+  async retentionForDate(
+    tenantId: string,
+    date: string,
+    tz: string,
+  ): Promise<{
+    newClients: number;
+    returningClients: number;
+    totalClients: number;
+    newPct: number | null;
+    returningPct: number | null;
+  }> {
+    const [row] = await this.ds.query(
+      `WITH today_clients AS (
+         SELECT DISTINCT altegio_client_id
+         FROM records
+         WHERE tenant_id = $1
+           AND attendance = 1
+           AND altegio_client_id IS NOT NULL
+           AND (datetime AT TIME ZONE $3)::date = $2
+       ),
+       first_visit AS (
+         SELECT r.altegio_client_id,
+                MIN((r.datetime AT TIME ZONE $3)::date) AS first_date
+         FROM records r
+         JOIN today_clients t ON t.altegio_client_id = r.altegio_client_id
+         WHERE r.tenant_id = $1 AND r.attendance = 1
+         GROUP BY r.altegio_client_id
+       )
+       SELECT
+         COUNT(*) FILTER (WHERE first_date = $2::date)::int AS new_clients,
+         COUNT(*) FILTER (WHERE first_date < $2::date)::int AS returning_clients
+       FROM first_visit`,
+      [tenantId, date, tz],
+    );
+    const newClients = Number(row?.new_clients ?? 0);
+    const returningClients = Number(row?.returning_clients ?? 0);
+    const total = newClients + returningClients;
+    return {
+      newClients,
+      returningClients,
+      totalClients: total,
+      newPct: total ? Math.round((newClients / total) * 100) : null,
+      returningPct: total ? Math.round((returningClients / total) * 100) : null,
+    };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Revenue dynamics: day/week/month vs previous comparable period
+  // ---------------------------------------------------------------------------
+
+  async revenueDynamics(
+    tenantId: string,
+    referenceDate: string,
+    tz: string,
+  ): Promise<{
+    day: { value: number; prev: number; deltaPct: number | null };
+    week: { value: number; prev: number; deltaPct: number | null };
+    month: { value: number; prev: number; deltaPct: number | null };
+  }> {
+    const ref = new Date(referenceDate + 'T00:00:00Z');
+    const refY = ref.getUTCFullYear();
+    const refM = ref.getUTCMonth() + 1;
+    const refD = ref.getUTCDate();
+
+    // Day windows
+    const dayPrev = this.subtractDays(referenceDate, 7);
+
+    // Week: 7 days ending on referenceDate inclusive
+    const weekStart = this.subtractDays(referenceDate, 6);
+    const weekPrevEnd = this.subtractDays(referenceDate, 7);
+    const weekPrevStart = this.subtractDays(referenceDate, 13);
+
+    // Month: MTD this month, same number of days in prev month
+    const mtdStart = `${refY}-${String(refM).padStart(2, '0')}-01`;
+    let pY = refY;
+    let pM = refM - 1;
+    if (pM <= 0) { pM += 12; pY -= 1; }
+    const prevMonthStart = `${pY}-${String(pM).padStart(2, '0')}-01`;
+    const prevMonthLastDay = new Date(Date.UTC(pY, pM, 0)).getUTCDate();
+    const prevMonthSameDay = Math.min(refD, prevMonthLastDay);
+    const prevMonthEnd = `${pY}-${String(pM).padStart(2, '0')}-${String(prevMonthSameDay).padStart(2, '0')}`;
+
+    const rangeSum = async (start: string, end: string): Promise<number> => {
+      const [r] = await this.ds.query(
+        `SELECT COALESCE(SUM(cost), 0)::numeric AS rev
+         FROM records
+         WHERE tenant_id = $1 AND attendance = 1
+           AND (datetime AT TIME ZONE $4)::date BETWEEN $2 AND $3`,
+        [tenantId, start, end, tz],
+      );
+      return Math.round(Number(r.rev));
+    };
+
+    const [dayVal, dayPrevVal, weekVal, weekPrevVal, monthVal, monthPrevVal] = await Promise.all([
+      rangeSum(referenceDate, referenceDate),
+      rangeSum(dayPrev, dayPrev),
+      rangeSum(weekStart, referenceDate),
+      rangeSum(weekPrevStart, weekPrevEnd),
+      rangeSum(mtdStart, referenceDate),
+      rangeSum(prevMonthStart, prevMonthEnd),
+    ]);
+
+    const delta = (cur: number, prev: number): number | null =>
+      prev > 0 ? Math.round(((cur - prev) / prev) * 100) : null;
+
+    return {
+      day: { value: dayVal, prev: dayPrevVal, deltaPct: delta(dayVal, dayPrevVal) },
+      week: { value: weekVal, prev: weekPrevVal, deltaPct: delta(weekVal, weekPrevVal) },
+      month: { value: monthVal, prev: monthPrevVal, deltaPct: delta(monthVal, monthPrevVal) },
     };
   }
 

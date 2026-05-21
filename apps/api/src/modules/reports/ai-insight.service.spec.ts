@@ -40,6 +40,12 @@ const minimalFixture: DailyReportData = {
     monthlyGoalExpectedMtd: null,
     monthlyGoalManual: false,
     topStaff: [],
+    noShow: { count: 0, lostRevenue: 0 },
+    retention: { newClients: 0, returningClients: 0, newPct: null, returningPct: null },
+    dynamics: {
+      week: { value: 0, prev: 0, deltaPct: null },
+      month: { value: 0, prev: 0, deltaPct: null },
+    },
     aiInsight: null,
   },
   today: {
