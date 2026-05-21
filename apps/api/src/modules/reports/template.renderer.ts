@@ -79,6 +79,12 @@ export function renderYesterdayMessage(data: DailyReportData): string {
     lines.push(`• Отменили:     ${y.cancelled} (${pct}%)`);
   }
 
+  // No-show — only when count > 0
+  if (y.noShow.count > 0) {
+    const lost = y.noShow.lostRevenue > 0 ? ` (${fmtMoney(y.noShow.lostRevenue)} упущено)` : '';
+    lines.push(`• Не пришли:    ${y.noShow.count}${lost}`);
+  }
+
   // Average check — only when came > 0 and avgCheck not null
   if (y.came > 0 && y.avgCheck !== null) {
     lines.push(`• Средний чек:  ${fmtMoney(y.avgCheck)}`);
@@ -87,6 +93,30 @@ export function renderYesterdayMessage(data: DailyReportData): string {
   // Utilisation — skip when null
   if (y.utilizationPct !== null) {
     lines.push(`• Загрузка:     ${fmtPct(y.utilizationPct)}`);
+  }
+
+  // Retention — only when there are attended clients
+  if (y.retention.newClients + y.retention.returningClients > 0) {
+    lines.push(
+      `• Клиенты:      ${y.retention.newClients} новых · ${y.retention.returningClients} постоянных (${fmtPct(y.retention.newPct ?? 0)}/${fmtPct(y.retention.returningPct ?? 0)})`,
+    );
+  }
+
+  // Revenue dynamics — week and/or month vs previous comparable period.
+  // Skip lines where prev period had no data (deltaPct === null).
+  const dyn = y.dynamics;
+  const dynLines: string[] = [];
+  const fmtDelta = (n: number): string => ` (${n >= 0 ? '+' : '−'}${Math.abs(n)}%)`;
+  if (dyn.week.deltaPct !== null) {
+    dynLines.push(`Неделя:   ${fmtMoney(dyn.week.value)} vs ${fmtMoney(dyn.week.prev)}${fmtDelta(dyn.week.deltaPct)}`);
+  }
+  if (dyn.month.deltaPct !== null) {
+    dynLines.push(`Месяц:    ${fmtMoney(dyn.month.value)} vs ${fmtMoney(dyn.month.prev)}${fmtDelta(dyn.month.deltaPct)}`);
+  }
+  if (dynLines.length > 0) {
+    lines.push('');
+    lines.push('📈 Динамика выручки');
+    lines.push(...dynLines);
   }
 
   // Monthly goal — verbose block when available
