@@ -12,6 +12,7 @@ import { TenantsModule } from '../tenants/tenants.module';
 import { TelegramModule } from '../telegram/telegram.module';
 import { SyncModule } from '../sync/sync.module';
 import { ReportsModule } from '../reports/reports.module';
+import { MetricsModule } from '../metrics/metrics.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { ReportsModule } from '../reports/reports.module';
     TenantsModule,
     TelegramModule,
     SyncModule,
+    MetricsModule,
     forwardRef(() => ReportsModule),
   ],
   providers: [TenantChatsService, InviteCodeService, BotLogsService, TelegramBotService],

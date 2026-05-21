@@ -16,6 +16,7 @@ export function registerHelp(bot: Telegraf<BotContext>, logs: BotLogsService): v
     lines.push('/link <код> — подключить чат к салону');
     if (isLinked) {
       lines.push('/report [YYYY-MM-DD] — отчёт (по умолчанию сегодня)');
+      lines.push('/staff [YYYY-MM-DD] — мастера за день');
       lines.push('/status — статус подписки');
       lines.push('/subscribe — включить автоотчёт');
       lines.push('/unsubscribe — выключить автоотчёт');

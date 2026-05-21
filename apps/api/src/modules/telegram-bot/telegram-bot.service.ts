@@ -22,6 +22,8 @@ import { registerStatus } from './commands/status.handler';
 import { registerSubscribe } from './commands/subscribe.handler';
 import { registerInvite } from './commands/invite.handler';
 import { registerSync } from './commands/sync.handler';
+import { registerStaff } from './commands/staff.handler';
+import { MetricsService } from '../metrics/metrics.service';
 import type { BotContext } from './utils/context';
 
 const LOCK_KEY = 8823911;
@@ -44,6 +46,7 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
     @Inject(forwardRef(() => ReportsService)) private readonly reports: ReportsService,
     private readonly sync: SyncService,
     private readonly telegram: TelegramService,
+    private readonly metrics: MetricsService,
     @InjectRepository(ReportDeliveryEntity) private readonly deliveries: Repository<ReportDeliveryEntity>,
   ) {}
 
@@ -85,6 +88,7 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
     registerLink(this.bot, { codes: this.codes, chats: this.tenantChats, tenants: this.tenants, logs: this.logs });
     registerReport(this.bot, { reports: this.reports, tenants: this.tenants, logs: this.logs });
     registerStatus(this.bot, { tenants: this.tenants, deliveries: this.deliveries, logs: this.logs });
+    registerStaff(this.bot, { metrics: this.metrics, tenants: this.tenants, logs: this.logs });
     registerSubscribe(this.bot, { chats: this.tenantChats, tenants: this.tenants, logs: this.logs });
 
     // Owner-only guard for /invite and /sync.
