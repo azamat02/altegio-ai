@@ -1,120 +1,91 @@
-# Handoff — 2026-04-21
+# Handoff — 2026-05-22
 
 ## Состояние
 
-**Phase 1, 1.1 отгружены в прод; Phase 1.2 реализована локально, готова к деплою на `altegio.tolemflow.kz`.**
+**Phase 1, 1.1, 1.2 отгружены в прод. Phase 1.3 (metrics expansion) реализована локально, готова к деплою на `altegio.tolemflow.kz`.**
 
-### Phase 1.2 (локально, не задеплоено)
+### Phase 1.3 — Metrics expansion (локально, не задеплоено)
 
-- 22 коммита от `4ae84e5` до `728ce94`. Spec: [docs/superpowers/specs/2026-04-21-phase-1-2-bot-commands-design.md](docs/superpowers/specs/2026-04-21-phase-1-2-bot-commands-design.md). Plan: [docs/superpowers/plans/2026-04-21-altegio-ai-phase-1-2.md](docs/superpowers/plans/2026-04-21-altegio-ai-phase-1-2.md).
-- 4 новых миграции: `tenant_chats` (N:M владельцы/члены), `telegram_invite_codes` (6-цифровые коды, 24ч TTL), `telegram_bot_logs` (аудит + rate-limit), расширение PK `report_deliveries` до `(tenant_id, date, message_kind, chat_id)` с backfill из `tenants.telegram_chat_id`.
-- Новый модуль `apps/api/src/modules/telegram-bot/`: inbound-бот на Telegraf long-polling, armed Postgres advisory lock на ключе `8823911`. `BOT_ENABLED` env-флаг (default false).
-- Команды: `/start`, `/help`, `/link <код>`, `/report [YYYY-MM-DD]`, `/status`, `/subscribe`, `/unsubscribe`, `/invite` (owner only), `/sync` (owner only, async + follow-up).
-- `ReportsService.generateAndDeliver` теперь fan-outит по всем `tenant_chats WHERE subscribed=true`, per-chat идемпотентность через `(tenant_id, date, kind, chat_id)` PK. 403/400 для member-чатов → auto-unsubscribe. `syncTenant` возвращает `{recordsFetched}` для follow-up сообщения.
-- CLI `link-telegram` пишет и в `tenants.telegram_chat_id`, и в `tenant_chats(role='owner')`.
-- 103 теста зелёные, nest build clean.
+Цель — закрыть чек-лист «9 метрик» (по референсу Rendite) в утреннем Telegram-отчёте и расширить бот командой `/staff`.
 
-### Rollout Phase 1.2 на VPS
+**Коммиты (свежие → старые), все на `main`:**
+- `317d219` feat(telegram-bot): `/staff [YYYY-MM-DD]` — per-master breakdown
+- `e4e76d9` feat(reports): рендер блока «📡 Откуда записи»
+- `c1c2d01` feat(metrics): `sourceBreakdown` — visits/revenue/share by `record_from`
+- `008a4d0` feat(sync): tracking `record_from` → `records.record_source`
+- `591ad69` feat(reports): рендер блоков «Не пришли», «Клиенты», «📈 Динамика выручки»
+- `ce28a09` feat(metrics): `noShowForDate`, `staffDailyBreakdown`, `retentionForDate`, `revenueDynamics`
 
-1. В `/opt/altegio-ai/.env`: `BOT_ENABLED=true`.
-2. `cd /opt/altegio-ai && ./deploy/deploy.sh` (4 новых миграции применятся автоматически).
-3. Проверить логи: «Telegram bot polling started».
-4. Smoke:
-   - `/start` в owner-чат BrowUp → ответ.
-   - `/invite` → 6-цифровой код.
-   - Из второго тестового чата `/link <код>` → «Подключено».
-   - `/report` оттуда → два сообщения.
-   - Завтра утром 09:00 Almaty — оба чата получают scheduled report.
-5. `/unsubscribe` в тестовом чате → завтра только owner получает.
+**1 новая миграция** (`1700000016000-AddRecordSource`): `ALTER TABLE records ADD COLUMN record_source text` + бэкфилл из `altegio_raw_records.payload->>'record_from'` + partial index `(tenant_id, record_source, datetime) WHERE NOT NULL`. На VPS бэкфилл прогонится по 11K+ существующих записей.
+
+**Новые методы в `MetricsService`:**
+- `noShowForDate` — count + lostRevenue (`attendance=2`).
+- `staffDailyBreakdown` — per-staff revenue/visits/avgCheck/bookedMinutes.
+- `retentionForDate` — новые vs постоянные (новый = first attended visit = дата среза).
+- `revenueDynamics` — day/week/month vs comparable prev period.
+- `sourceBreakdown` — visits/revenue/share по `record_from`, NULL → «Прямая запись».
+
+**Расширение `YesterdayBlock`** (в `@altegio/shared`): добавлены `noShow`, `retention`, `dynamics`, `sources`. Старые поля без изменений.
+
+**Утренний отчёт теперь включает (все блоки conditional):**
+- `• Не пришли:` (когда `attendance=2 > 0`)
+- `• Клиенты: X новых · Y постоянных`
+- `📈 Динамика выручки` (Неделя / Месяц vs prev, строки скрываются если prev=0)
+- `📡 Откуда записи` (top-4 каналы)
+
+**Новая команда бота** `/staff [YYYY-MM-DD]` — для linked-чатов, по умолчанию вчера в TZ салона. Помечена в `/help`.
+
+**Тесты:** 92/92 unit, 44/44 int (включая регрессионные правки migration-rollback тестов и новый `metrics-v2.int.spec.ts` на 10 кейсов). `pnpm build` clean.
+
+### Rollout Phase 1.3 на VPS
+
+1. `cd /opt/altegio-ai && git pull origin main`
+2. `./deploy/deploy.sh` — миграция №16 применится автоматически и сделает бэкфилл `record_source` из raw payload.
+3. Проверить логи: «Migration AddRecordSource1700000016000 has been executed successfully».
+4. Smoke в owner-чате BrowUp:
+   - `/report` → должны появиться 3 новых блока (Динамика + Откуда записи + строка «Клиенты»).
+   - `/staff` → нумерованный список мастеров за вчера.
+   - `/help` → должна быть строка `/staff [YYYY-MM-DD]`.
+5. Завтра 09:00 Almaty — scheduled report должен прийти в обновлённом формате.
+
+### Покрытие чек-листа «9 метрик» после Phase 1.3
+
+- ✅ #01 Ежедневная выручка + динамика (день/неделя/месяц)
+- ⚠️ #02 Заполняемость мастеров — booked min per-master в `/staff`, но % требует staff capacity (отложено до пэйного запроса)
+- ✅ #03 Заполняемость услуг
+- ✅ #04 Средний чек per-master
+- ✅ #05 Возвращаемость
+- ✅ #06 Источники записей
+- ✅ #07 No-show (отмены `attendance=-1` Altegio не отдаёт, отложено)
+- ✅ #08 Динамика выручки WoW/MoM
+- ✅ #09 AI-инсайты
 
 ---
 
 ## Ранее отгруженные фазы
 
-**Phase 1 и Phase 1.1 отгружены в прод на `altegio.tolemflow.kz`.**
+**Phase 1, 1.1, 1.2 на `altegio.tolemflow.kz`.**
 
 - Phase 1 (`v0.1.0-phase1`): один утренний Telegram-отчёт в 09:00 Asia/Almaty → owner-chat. Acceptance: [docs/superpowers/plans/2026-04-20-altegio-ai-phase-1-acceptance.md](docs/superpowers/plans/2026-04-20-altegio-ai-phase-1-acceptance.md) (блок «Phase 1»).
-- Phase 1.1 (`v0.2.0-phase1-1`, коммит `0ec74fd`): два сообщения (yesterday + today), capacity-aware загрузка через `/company/{id}/staff/schedule`, per-category fill rates с настоящими именами категорий из `/service_categories`, план месяца (avg(3m)×1.1), TZ-aware запросы, retry-safe failed deliveries. Acceptance: тот же файл, второй блок. Первая живая пара сообщений доставлена пользователю 2026-04-21 17:12 UTC.
-- BrowUp tenant `fe952c56-af0a-4f33-aa00-27b8dd293a8a` на VPS, 11 546 записей, 10 миграций применены, скедулер армирован на 09:00 Almaty.
+- Phase 1.1 (`v0.2.0-phase1-1`, коммит `0ec74fd`): два сообщения (yesterday + today), capacity-aware загрузка через `/company/{id}/staff/schedule`, per-category fill rates с настоящими именами категорий из `/service_categories`, план месяца (avg(3m)×1.1), TZ-aware запросы, retry-safe failed deliveries.
+- Phase 1.2 (после коммита `728ce94`): N:M `tenant_chats`, inbound Telegraf-бот, команды `/start`, `/help`, `/link`, `/report`, `/status`, `/subscribe`, `/unsubscribe`, `/invite`, `/sync`. Bot polling под Postgres advisory lock `8823911`. `BOT_ENABLED` env-флаг.
+- Pace-based monthly goal (`c719a43`, `ef13a62`): manual goal override + verbose месячный блок (target / daily norm / elapsed / expected / actual / pace / yesterday-vs-norm). Уже задеплоено вместе с 1.2? Проверь `git log` на VPS — если `ef13a62` не там, едут вместе с Phase 1.3.
 
-## Что строим дальше — после деплоя Phase 1.2
+## Открытые техдолги
 
-Phase 1.2 локально готова (см. раздел выше). После rollout на VPS и smoke-тестов — переключаемся на customer development (см. раздел «Приоритет по времени»). Ниже — исторический контекст брейнсторма Phase 1.2.
-
-## Архив — исходный брейнсторм Phase 1.2
-
-**Цель:** дать владельцу инициировать анализ самому и подключать вторых пользователей (бухгалтер, сеть-менеджер) без CLI.
-
-### Уже согласовано в брейнсторме (эта сессия)
-
-**Схема:**
-- `tenant_chats(tenant_id, chat_id, role enum('owner','member'), subscribed bool, created_at)` — N:M, заменяет логику «один chat на tenant».
-- `telegram_invite_codes(code, tenant_id, created_by_chat_id, expires_at, used_by_chat_id, used_at)` — 6-значные одноразовые коды, 24ч TTL.
-- `telegram_bot_logs(chat_id, command, args, responded_at)` — аудит + основа rate-limit.
-- `tenants.telegram_chat_id` НЕ удаляем, сохраняем как owner-chat для обратной совместимости; при `add-salon + link-telegram` CLI одновременно сидим строку в `tenant_chats`.
-- `report_deliveries` PK расширяется до `(tenant_id, date, message_kind, chat_id)` — чтобы fan-out по подписчикам имел per-chat идемпотентность.
-
-**Команды:**
-- `/start`, `/help` — публичные.
-- `/link <code>` — публичный; добавляет этот чат как `member`.
-- `/report [YYYY-MM-DD]` — для linked chats. Шлёт yesterday+today пару. Rate-limit 1/10 мин per chat. AI-инсайт кешируем по `ai_insight_logs.prompt_hash` — повторный `/report` той же даты не жжёт Claude.
-- `/status` — салон, роль, подписка, next scheduled time, last delivery.
-- `/subscribe` / `/unsubscribe` — тогглит автоотчёт для этого чата.
-- `/invite` — owner only; возвращает одноразовый код.
-- `/sync` — owner only; энкьюивает sync, rate-limit 1/5 мин per tenant. По завершению бот отвечает «готово, N новых записей».
-- Неавторизованный chat → подсказка пройти /link.
-
-**Архитектура:**
-- Новый модуль `apps/api/src/modules/telegram-bot/` отдельно от outbound `telegram/`. Инбаунд поднимается через Telegraf `bot.launch()` в `onModuleInit`, когда `BOT_ENABLED=true`.
-- Файлы: `telegram-bot.service.ts` (lifecycle), `commands/*.handler.ts` (по файлу на команду), `middleware/resolve-chat.middleware.ts` и `middleware/require-linked.middleware.ts` / `require-owner.middleware.ts`, `invite-code.service.ts`.
-- `ReportsService.generateAndDeliver` делает fan-out по `tenant_chats WHERE subscribed = true`, пишет `report_deliveries` с `chat_id` в PK.
-- Один API-процесс владеет polling-ом; защита от двойного старта — postgres advisory lock на ключе `telegram_bot_polling` (пока 1 реплика — не критично, но заложить).
-
-### Открытые вопросы для новой сессии
-
-1. **`/sync` UX:** отвечать сразу («enqueued, ждите») и потом вторым сообщением при завершении, или ждать до завершения (blocking, может зависнуть на 30-60 сек)? Сейчас склоняюсь к async + follow-up, но решим в новой сессии.
-2. **PK `report_deliveries` во второй раз за неделю** — на Phase 1.1 уже расширяли до `(tenant_id, date, message_kind)`. Новая миграция добавит `chat_id`. Нормально. Down-миграция должна удалять повторные chat-строки. Надо прописать в спеке.
-3. **Формат invite-кода** — 6-цифровой числовой («384027») или буквенно-числовой («7F3KQ2»)? Числовой легче ввести на мобилке, буквенно-цифровой короче при одинаковой энтропии. Думаю ЦИФРЫ, но подтверди.
-4. **`/report` за будущие даты** — должно валидироваться? `--date 2027-01-01 --dry-run` в текущем CLI не падает (просто покажет нули). В боте, наверное, отвергать: «нет данных на эту дату».
-
-### Что НЕ в Phase 1.2 (явно отрезано)
-
-- Chat с Claude (Phase 4 из ROADMAP) — свободные вопросы бизнесу. Отдельный спринт.
-- Losses report / wow-письмо (Phase 2) — отдельный трек.
-- TMA-дашборд (Phase 3).
-
-## Как начать новую сессию
-
-1. `/clear` → старт новой сессии
-2. Первое сообщение: «читай `HANDOFF.md` и `ROADMAP.md`, продолжаем брейнсторм Phase 1.2 — мы остановились на архитектуре, остались 4 вопроса в «Открытые вопросы»». 
-3. После ответа на вопросы — Claude добивает spec, коммитит в `docs/superpowers/specs/2026-04-??-phase-1-2-bot-commands-design.md`, затем `writing-plans` → `subagent-driven-development` → VPS rollout тем же паттерном что Phase 1.1.
-
-## Ключевые файлы
-
-**Контекст проекта:**
-- `ROADMAP.md` — общий продуктовый roadmap Phase 1-5.
-- `HANDOFF.md` — этот файл.
-- `SESSION_CONTEXT.md` — сводка по Altegio API (какие endpoints тестированы, что работает).
-- `DATA_MAP_AND_MVP.md` — оригинальная карта данных и 5 вариантов MVP A-E.
-
-**Phase 1.1 (недавно):**
-- `docs/superpowers/specs/2026-04-21-phase-1-1-dual-message-report-design.md` — спек.
-- `docs/superpowers/plans/2026-04-21-altegio-ai-phase-1-1.md` — 25-таск план.
-- `docs/superpowers/plans/2026-04-20-altegio-ai-phase-1-acceptance.md` — acceptance log обоих фаз.
-
-**Где бот сейчас живёт:**
-- `apps/api/src/modules/telegram/telegram.service.ts` — outbound (Telegraf.sendMessage).
-- `apps/api/src/modules/telegram/telegram.module.ts` — минимальный Nest-модуль.
-- Тенант-чат линк: `apps/api/src/modules/tenants/tenant.entity.ts` → `telegram_chat_id` bigint nullable.
-- CLI линковки: `apps/cli/src/commands/link-telegram.ts`.
-
-## Деплой-инфа (не менялась)
-
-- VPS: `root@178.128.202.65`, домен `altegio.tolemflow.kz`.
-- Образ: `ghcr.io/azamat02/altegio-ai-api:latest` (public).
-- Деплой: `cd /opt/altegio-ai && ./deploy/deploy.sh` (pull + compose up).
-- Бот токен, Claude key, BrowUp token — в `/opt/altegio-ai/.env` на VPS, НЕ закоммичены. Ротация секретов — в долгу с Phase 1 ещё.
+1. **`tenants.altegio_token_encrypted` хранит partner-токен**, должен — per-tenant user-токен. Ломается при онбординге второго салона. Refactor ~1-2ч.
+2. **Per-staff capacity** — `/staff/{id}/schedule` нужен отдельный синк для метрики «загрузка мастера в %». Текущий `resource_schedule` — по resource_altegio_id, не по staff.
+3. **Реальные отмены** — Altegio `/records` не возвращает `attendance=-1`. Нужен прототип `/records/search` или `/book_dates` для получения истории изменений.
 
 ## Приоритет по времени
 
-Phase 1.2 — не блокер. Основной бутылочный горлышко — customer development (3-5 платящих клиентов, $15-25/мес). Продукт уже готов демонстрировать владельцу любого салона. Команды бота повышают удобство, но не необходимы для первой продажи.
+После rollout Phase 1.3 — **customer development** (см. ROADMAP). Phase 2 (losses report) гейтится 3-5 платящими салонами на Phase 1. Технически Phase 1 покрывает «9 метрик» уровня Rendite — есть что показывать на pitch.
+
+## Ключевые файлы
+
+- `ROADMAP.md` — общий продуктовый roadmap Phase 1-5.
+- `HANDOFF.md` — этот файл.
+- `SESSION_CONTEXT.md` — сводка по Altegio API.
+- `DATA_MAP_AND_MVP.md` — карта данных и варианты MVP A-E.
+- `docs/superpowers/specs/2026-04-21-phase-1-2-bot-commands-design.md` — spec Phase 1.2.
+- `docs/superpowers/plans/2026-04-21-altegio-ai-phase-1-2.md` — план Phase 1.2.
