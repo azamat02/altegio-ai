@@ -23,6 +23,7 @@ import { registerSubscribe } from './commands/subscribe.handler';
 import { registerInvite } from './commands/invite.handler';
 import { registerSync } from './commands/sync.handler';
 import { registerStaff } from './commands/staff.handler';
+import { registerMore } from './commands/more.handler';
 import { MetricsService } from '../metrics/metrics.service';
 import type { BotContext } from './utils/context';
 
@@ -96,6 +97,15 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
     this.bot.command(['invite', 'sync'], async (ctx, next) => ownerGuard(ctx as unknown as BotContext, next));
     registerInvite(this.bot, { codes: this.codes, tenants: this.tenants, logs: this.logs });
     registerSync(this.bot, { sync: this.sync, telegram: this.telegram, logs: this.logs });
+    registerMore(this.bot, {
+      tenants: this.tenants,
+      deliveries: this.deliveries,
+      logs: this.logs,
+      chats: this.tenantChats,
+      sync: this.sync,
+      telegram: this.telegram,
+      codes: this.codes,
+    });
 
     void this.registerTelegramUi(loadConfig().TMA_URL);
 

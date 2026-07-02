@@ -6,24 +6,31 @@ import type { TenantsService } from '../../tenants/tenants.service';
 import type { TenantChatEntity } from '../entities/tenant-chat.entity';
 import { buildTenantPickerKeyboard } from '../utils/tenant-picker';
 
+export type InviteDeps = { codes: InviteCodeService; tenants: TenantsService; logs: BotLogsService };
+
+export async function handleInviteCommand(
+  ctx: BotContext,
+  deps: InviteDeps,
+): Promise<void> {
+  await deps.logs.log({ chatId: ctx.state.chatId, tenantId: null, command: '/invite' });
+  const ownerLinks = ctx.state.tenants.filter((t: TenantChatEntity) => t.role === 'owner');
+  if (ownerLinks.length === 1) {
+    return handle(ctx, deps, ownerLinks[0].tenantId);
+  }
+  const options = await Promise.all(ownerLinks.map(async (l: TenantChatEntity) => ({
+    tenantId: l.tenantId,
+    label: (await deps.tenants.findById(l.tenantId))?.salonName ?? l.tenantId,
+  })));
+  await ctx.reply('Выбери салон для инвайта:', {
+    reply_markup: { inline_keyboard: buildTenantPickerKeyboard(options, 'invite') },
+  });
+}
+
 export function registerInvite(
   bot: Telegraf<BotContext>,
-  deps: { codes: InviteCodeService; tenants: TenantsService; logs: BotLogsService },
+  deps: InviteDeps,
 ): void {
-  bot.command('invite', async (ctx) => {
-    await deps.logs.log({ chatId: ctx.state.chatId, tenantId: null, command: '/invite' });
-    const ownerLinks = ctx.state.tenants.filter((t: TenantChatEntity) => t.role === 'owner');
-    if (ownerLinks.length === 1) {
-      return handle(ctx as unknown as BotContext, deps, ownerLinks[0].tenantId);
-    }
-    const options = await Promise.all(ownerLinks.map(async (l: TenantChatEntity) => ({
-      tenantId: l.tenantId,
-      label: (await deps.tenants.findById(l.tenantId))?.salonName ?? l.tenantId,
-    })));
-    await ctx.reply('Выбери салон для инвайта:', {
-      reply_markup: { inline_keyboard: buildTenantPickerKeyboard(options, 'invite') },
-    });
-  });
+  bot.command('invite', async (ctx) => handleInviteCommand(ctx as unknown as BotContext, deps));
 
   bot.action(/^invite:(\S+)$/, async (ctx) => {
     const [, tenantId] = ctx.match;
