@@ -32,7 +32,10 @@ services:
       - "127.0.0.1:3000:3000"
 
   nginx:
-    image: nginx:alpine
+    build:
+      context: ..
+      dockerfile: apps/tma/Dockerfile
+    image: altegio-ai-web:local
     restart: always
     ports:
       - "80:80"
