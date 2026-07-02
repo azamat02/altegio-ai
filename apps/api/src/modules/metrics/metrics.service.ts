@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { TenantsService } from '../tenants/tenants.service';
-import { CategoryFill, DailyReportData, TopStaff, RevenueDynamics, Retention, NoShow, StaffTableRow, TrendPoint } from '@altegio/shared';
+import { CategoryFill, DailyReportData, TopStaff, StaffTableRow, TrendPoint } from '@altegio/shared';
 
 @Injectable()
 export class MetricsService {
