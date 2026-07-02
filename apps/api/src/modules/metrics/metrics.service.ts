@@ -677,6 +677,90 @@ export class MetricsService {
   }
 
   // ---------------------------------------------------------------------------
+  // Task 3 (TMA v2a) — staffDetail: per-master header, services, clients, cancels
+  // ---------------------------------------------------------------------------
+
+  async staffDetail(tenantId: string, staffId: number, from: string, to: string, tz: string) {
+    const [staff] = await this.ds.query(
+      `SELECT name FROM staff WHERE tenant_id = $1 AND altegio_staff_id = $2`,
+      [tenantId, staffId],
+    );
+    if (!staff) return null;
+
+    const [head] = await this.ds.query(
+      `SELECT COALESCE(SUM(r.cost) FILTER (WHERE r.attendance = 1), 0)::numeric AS revenue,
+              COUNT(*) FILTER (WHERE r.attendance = 1)::int AS visits,
+              COUNT(*) FILTER (WHERE r.attendance = -1)::int AS cancelled,
+              COUNT(*) FILTER (WHERE r.attendance = 2)::int AS no_show,
+              COALESCE(SUM(r.seance_length) FILTER (WHERE r.attendance = 1), 0)::int AS booked_sec
+       FROM records r
+       WHERE r.tenant_id = $1 AND r.altegio_staff_id = $2 AND r.deleted = false
+         AND (r.datetime AT TIME ZONE $5)::date BETWEEN $3 AND $4`,
+      [tenantId, staffId, from, to, tz],
+    );
+
+    const [cap] = await this.ds.query(
+      `SELECT COALESCE(SUM(working_minutes), 0)::int AS capacity_min
+       FROM resource_schedule
+       WHERE tenant_id = $1 AND resource_altegio_id = $2 AND date BETWEEN $3 AND $4`,
+      [tenantId, staffId, from, to],
+    );
+
+    const services = await this.ds.query(
+      `SELECT s.title, COUNT(*)::int AS visits, COALESCE(SUM(r.cost), 0)::numeric AS revenue
+       FROM records r
+       JOIN services s ON s.tenant_id = r.tenant_id AND s.altegio_service_id = r.altegio_service_id
+       WHERE r.tenant_id = $1 AND r.altegio_staff_id = $2 AND r.attendance = 1 AND r.deleted = false
+         AND (r.datetime AT TIME ZONE $5)::date BETWEEN $3 AND $4
+       GROUP BY s.title
+       ORDER BY revenue DESC
+       LIMIT 10`,
+      [tenantId, staffId, from, to, tz],
+    );
+
+    const [clients] = await this.ds.query(
+      `WITH first_visit AS (
+         SELECT altegio_client_id, MIN((datetime AT TIME ZONE $5)::date) AS first_date
+         FROM records
+         WHERE tenant_id = $1 AND attendance = 1 AND altegio_client_id IS NOT NULL AND deleted = false
+         GROUP BY altegio_client_id
+       ),
+       in_range AS (
+         SELECT DISTINCT r.altegio_client_id
+         FROM records r
+         WHERE r.tenant_id = $1 AND r.altegio_staff_id = $2 AND r.attendance = 1
+           AND r.altegio_client_id IS NOT NULL AND r.deleted = false
+           AND (r.datetime AT TIME ZONE $5)::date BETWEEN $3 AND $4
+       )
+       SELECT COUNT(*) FILTER (WHERE fv.first_date BETWEEN $3 AND $4)::int AS new_clients,
+              COUNT(*) FILTER (WHERE fv.first_date < $3)::int AS returning_clients
+       FROM in_range ir
+       JOIN first_visit fv ON fv.altegio_client_id = ir.altegio_client_id`,
+      [tenantId, staffId, from, to, tz],
+    );
+
+    const revenue = Math.round(Number(head.revenue));
+    const visits = Number(head.visits);
+    const bookedMin = Number(head.booked_sec) / 60;
+    const capacity = Number(cap.capacity_min);
+    return {
+      staffId,
+      name: staff.name,
+      revenue,
+      visits,
+      avgCheck: visits ? Math.round(revenue / visits) : 0,
+      utilizationPct: capacity ? Math.round((bookedMin / capacity) * 100) : null,
+      newClients: Number(clients?.new_clients ?? 0),
+      returningClients: Number(clients?.returning_clients ?? 0),
+      cancelled: Number(head.cancelled),
+      noShow: Number(head.no_show),
+      services: services.map((s: any) => ({
+        title: s.title, visits: Number(s.visits), revenue: Math.round(Number(s.revenue)),
+      })),
+    };
+  }
+
+  // ---------------------------------------------------------------------------
   // Utilities
   // ---------------------------------------------------------------------------
 

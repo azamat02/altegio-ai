@@ -105,3 +105,57 @@ describe('MetricsService trend series (int)', () => {
     ]);
   });
 });
+
+describe('MetricsService.staffDetail (int)', () => {
+  let db: TestDb; let svc: MetricsService; let tenantId: string;
+
+  beforeAll(async () => {
+    db = await startTestDb();
+    const tenants = new TenantsService(
+      db.ds.getRepository(TenantEntity),
+      new TokenCipher(process.env.APP_ENCRYPTION_KEY!),
+    );
+    svc = new MetricsService(db.ds, tenants);
+    const t = await tenants.create({ salonName: 'S', locationId: 9, altegioToken: 'x', timezone: 'UTC' });
+    tenantId = t.id;
+
+    await db.ds.query(
+      `INSERT INTO staff (tenant_id, altegio_staff_id, name, fired, bookable) VALUES ($1, 1, 'Алиса', false, true)`, [tenantId]);
+    await db.ds.query(
+      `INSERT INTO services (tenant_id, altegio_service_id, title, category_id, price_min, price_max, active) VALUES
+       ($1, 501, 'Брови', NULL, 0, 0, true), ($1, 502, 'Ресницы', NULL, 0, 0, true)`, [tenantId]);
+    await db.ds.query(
+      `INSERT INTO resource_schedule (tenant_id, resource_altegio_id, date, working_minutes) VALUES
+       ($1, 1, '2026-06-10', 600)`, [tenantId]);
+    // client 100: first-ever visit BEFORE range (returning); client 101: first-ever IN range (new)
+    await db.ds.query(
+      `INSERT INTO records (tenant_id, altegio_record_id, altegio_staff_id, altegio_client_id, altegio_service_id, datetime, seance_length, cost, attendance, paid_full, is_online, deleted) VALUES
+       ($1, 1, 1, 100, 501, '2026-06-01 10:00+00', 3600, 8000, 1, 1, false, false),
+       ($1, 2, 1, 100, 501, '2026-06-10 10:00+00', 3600, 10000, 1, 1, false, false),
+       ($1, 3, 1, 101, 502, '2026-06-10 12:00+00', 3600, 20000, 1, 1, false, false),
+       ($1, 4, 1, 102, 501, '2026-06-10 14:00+00', 3600, 0, -1, 0, false, false),
+       ($1, 5, 1, 103, 502, '2026-06-10 15:00+00', 3600, 0, 2, 0, false, false)`, [tenantId]);
+  }, 60000);
+  afterAll(async () => { await db.stop(); });
+
+  it('aggregates header numbers, services, clients, cancels for the range', async () => {
+    const d = (await svc.staffDetail(tenantId, 1, '2026-06-10', '2026-06-10', 'UTC'))!;
+    expect(d.name).toBe('Алиса');
+    expect(d.revenue).toBe(30000);
+    expect(d.visits).toBe(2);
+    expect(d.avgCheck).toBe(15000);
+    expect(d.utilizationPct).toBe(20); // 120 booked min / 600 capacity
+    expect(d.cancelled).toBe(1);
+    expect(d.noShow).toBe(1);
+    expect(d.newClients).toBe(1);        // client 101
+    expect(d.returningClients).toBe(1);  // client 100 (first visit 2026-06-01)
+    expect(d.services).toEqual([
+      { title: 'Ресницы', visits: 1, revenue: 20000 },
+      { title: 'Брови', visits: 1, revenue: 10000 },
+    ]);
+  });
+
+  it('returns null for an unknown staff id', async () => {
+    expect(await svc.staffDetail(tenantId, 999, '2026-06-10', '2026-06-10', 'UTC')).toBeNull();
+  });
+});
