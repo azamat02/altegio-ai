@@ -9,7 +9,7 @@ const rows: StaffCompareRow[] = [
 
 describe('StaffList', () => {
   // Single render shared across assertions in this describe block.
-  const html = renderToString(<StaffList rows={rows} onOpen={() => {}} trends={{}} />);
+  const html = renderToString(<StaffList rows={rows} onOpen={() => {}} />);
 
   it('renders a master row with revenue, utilization, and a delta badge', () => {
     expect(html).toContain('Алиса');
