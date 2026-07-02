@@ -88,7 +88,7 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
     registerLink(this.bot, { codes: this.codes, chats: this.tenantChats, tenants: this.tenants, logs: this.logs, tmaUrl: loadConfig().TMA_URL });
     registerReport(this.bot, { reports: this.reports, tenants: this.tenants, logs: this.logs, tmaUrl: loadConfig().TMA_URL });
     registerStatus(this.bot, { tenants: this.tenants, deliveries: this.deliveries, logs: this.logs });
-    registerStaff(this.bot, { metrics: this.metrics, tenants: this.tenants, logs: this.logs });
+    registerStaff(this.bot, { metrics: this.metrics, tenants: this.tenants, logs: this.logs, tmaUrl: loadConfig().TMA_URL });
     registerSubscribe(this.bot, { chats: this.tenantChats, tenants: this.tenants, logs: this.logs });
 
     // Owner-only guard for /invite and /sync.
