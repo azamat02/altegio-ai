@@ -12,48 +12,52 @@ function withT(patch: Partial<DailyReportData['today']>): DailyReportData {
   return { ...baseFixture, today: { ...baseFixture.today, ...patch } };
 }
 
+function makeData(patch: Partial<DailyReportData>): DailyReportData {
+  return { ...baseFixture, ...patch };
+}
+
 // ─── Yesterday ──────────────────────────────────────────────────────────────
 
 describe('renderYesterdayMessage', () => {
   it('full happy path: cancellations > 0, goal available, insight present', () => {
     const txt = renderYesterdayMessage(baseFixture);
     expect(txt).toMatchInlineSnapshot(`
-"☀ Доброе утро! Салон №1, Алматы
-📊 Вчера · Вс, 19 апр
+"☀ Доброе утро! <b>Салон №1, Алматы</b>
+<i>📊 Вчера · Вс, 19 апр</i>
 
-• Выручка:      2\u00a0899\u00a0953\u00a0₸ (+7% к 7d avg)
-• Визитов:      93
-• Отменили:     4 (4%)
-• Не пришли:    2 (18\u00a0000\u00a0₸ упущено)
-• Средний чек:  31\u00a0182\u00a0₸
-• Загрузка:     64%
-• Клиенты:      31 новых · 62 постоянных (33%/67%)
+• Выручка: <b>2 899 953 ₸</b> (+7% к 7d avg)
+• Визитов: 93
+• Отменили: 4 (4%)
+• Не пришли: 2 (18 000 ₸ упущено)
+• Средний чек: <b>31 182 ₸</b>
+• Загрузка: <b>64%</b>
+• Клиенты: 31 новых · 62 постоянных (33%/67%)
 
-📈 Динамика выручки
-Неделя:   18\u00a0200\u00a0000\u00a0₸ vs 14\u00a0900\u00a0000\u00a0₸ (+22%)
-Месяц:    19\u00a0500\u00a0000\u00a0₸ vs 17\u00a0800\u00a0000\u00a0₸ (+10%)
+<b>📈 Динамика выручки</b>
+Неделя: <b>18 200 000 ₸</b> vs <b>14 900 000 ₸</b> (+22%)
+Месяц: <b>19 500 000 ₸</b> vs <b>17 800 000 ₸</b> (+10%)
 
-💰 План месяца
-Цель:       27.5М\u00a0₸ (0.9М\u00a0₸ в день)
-Прошло:     19 из 30 дней
-Ожидалось:  18.3М\u00a0₸
-Факт:       19.5М\u00a0₸
-Темп:       106%
-Вчера:      2.9М\u00a0₸ из 0.9М нормы (316%)
+<b>💰 План месяца</b>
+Цель: 27.5М ₸ (0.9М ₸ в день)
+Прошло: 19 из 30 дней
+Ожидалось: 18.3М ₸
+Факт: <b>19.5М ₸</b>
+Темп: <b>106%</b>
+Вчера: 2.9М ₸ из 0.9М нормы (316%)
 
-📡 Откуда записи
+<b>📡 Откуда записи</b>
 • Прямая запись — 58 зап. (62%)
 • Online widget — 28 зап. (30%)
 • Altegio.me App — 5 зап. (5%)
 • Partners: Яндекс Карты — 2 зап. (3%)
 
-🏆 Топ-3 мастера
-1. Оксана Гарифзянова — 450\u00a0000\u00a0₸ (2 визита)
-2. Гульнара — 293\u00a0880\u00a0₸ (11 визитов)
-3. Насиба — 226\u00a0799\u00a0₸ (5 визитов)
+<b>🏆 Топ-3 мастера</b>
+1. Оксана Гарифзянова — 450 000 ₸ (2 визита)
+2. Гульнара — 293 880 ₸ (11 визитов)
+3. Насиба — 226 799 ₸ (5 визитов)
 
 💡 Главный инсайт
-Воскресенье показало пик выручки за последние 2 недели. Стоит повторить промо."
+<blockquote>Воскресенье показало пик выручки за последние 2 недели. Стоит повторить промо.</blockquote>"
 `);
   });
 
@@ -96,6 +100,21 @@ describe('renderYesterdayMessage', () => {
     const revLine = txt.split('\n').find((l) => l.startsWith('• Выручка'))!;
     expect(revLine).toContain('−12% к 7d avg');
   });
+
+  it('escapes HTML-dangerous characters in names', () => {
+    const data = makeData({ salonName: 'Brow & Up <VIP>' });
+    const msg = renderYesterdayMessage(data);
+    expect(msg).toContain('Brow &amp; Up &lt;VIP&gt;');
+    expect(msg).not.toContain('<VIP>');
+  });
+
+  it('wraps the AI insight in a blockquote', () => {
+    const data = makeData({});
+    data.yesterday.aiInsight = 'Совет: догрузите среду';
+    const msg = renderYesterdayMessage(data);
+    expect(msg).toContain('<blockquote>');
+    expect(msg).toContain('Совет: догрузите среду');
+  });
 });
 
 // ─── Today ───────────────────────────────────────────────────────────────────
@@ -104,17 +123,17 @@ describe('renderTodayMessage', () => {
   it('renders top-5 categories', () => {
     const txt = renderTodayMessage(baseFixture);
     expect(txt).toMatchInlineSnapshot(`
-"📅 Сегодня · Пн, 20 апр
+"<i>📅 Сегодня · Пн, 20 апр</i>
 
-• Записей:  59
-• Загрузка: 82%
+• Записей: 59
+• Загрузка: <b>82%</b>
 
-📊 Заполненность по категориям
-• Маникюр      68% (12 зап.)
-• Аппараты     45% (8 зап.)
-• Макияж       30% (4 зап.)
-• Депиляция    20% (3 зап.)
-• Окрашивание  15% (2 зап.)"
+<b>📊 Заполненность по категориям</b>
+• Маникюр — 68% (12 зап.)
+• Аппараты — 45% (8 зап.)
+• Макияж — 30% (4 зап.)
+• Депиляция — 20% (3 зап.)
+• Окрашивание — 15% (2 зап.)"
 `);
   });
 

@@ -1,11 +1,12 @@
 import { DailyReportData } from '@altegio/shared';
+import { escapeHtml } from '../../common/html';
 
 // ── Money formatter ──────────────────────────────────────────────────────────
 // Uses Russian thin-space grouping (U+202F narrow no-break space via ru-RU
 // locale) and ₸ suffix with a non-breaking space before it.
 function fmtMoney(n: number): string {
   const formatted = new Intl.NumberFormat('ru-RU').format(Math.round(n));
-  return `${formatted}\u00a0₸`;
+  return `${formatted} ₸`;
 }
 
 // ── Pluralisation helper ──────────────────────────────────────────────────────
@@ -59,8 +60,8 @@ export function renderYesterdayMessage(data: DailyReportData): string {
   const lines: string[] = [];
 
   // Header block
-  lines.push(`☀ Доброе утро! ${salonName}`);
-  lines.push(`📊 Вчера · ${dateStr}`);
+  lines.push(`☀ Доброе утро! <b>${escapeHtml(salonName)}</b>`);
+  lines.push(`<i>📊 Вчера · ${dateStr}</i>`);
   lines.push('');
 
   // Metrics list
@@ -69,36 +70,36 @@ export function renderYesterdayMessage(data: DailyReportData): string {
     y.deltaPct !== null
       ? ` (${y.deltaPct >= 0 ? '+' : '−'}${Math.abs(Math.round(y.deltaPct))}% к 7d avg)`
       : '';
-  lines.push(`• Выручка:      ${fmtMoney(y.revenue)}${deltaSuffix}`);
-  lines.push(`• Визитов:      ${y.came}`);
+  lines.push(`• Выручка: <b>${fmtMoney(y.revenue)}</b>${deltaSuffix}`);
+  lines.push(`• Визитов: ${y.came}`);
 
   // Cancellations — only when cancelled > 0
   if (y.cancelled > 0) {
     const total = y.came + y.cancelled;
     const pct = total > 0 ? Math.round((y.cancelled / total) * 100) : 0;
-    lines.push(`• Отменили:     ${y.cancelled} (${pct}%)`);
+    lines.push(`• Отменили: ${y.cancelled} (${pct}%)`);
   }
 
   // No-show — only when count > 0
   if (y.noShow.count > 0) {
     const lost = y.noShow.lostRevenue > 0 ? ` (${fmtMoney(y.noShow.lostRevenue)} упущено)` : '';
-    lines.push(`• Не пришли:    ${y.noShow.count}${lost}`);
+    lines.push(`• Не пришли: ${y.noShow.count}${lost}`);
   }
 
   // Average check — only when came > 0 and avgCheck not null
   if (y.came > 0 && y.avgCheck !== null) {
-    lines.push(`• Средний чек:  ${fmtMoney(y.avgCheck)}`);
+    lines.push(`• Средний чек: <b>${fmtMoney(y.avgCheck)}</b>`);
   }
 
   // Utilisation — skip when null
   if (y.utilizationPct !== null) {
-    lines.push(`• Загрузка:     ${fmtPct(y.utilizationPct)}`);
+    lines.push(`• Загрузка: <b>${fmtPct(y.utilizationPct)}</b>`);
   }
 
   // Retention — only when there are attended clients
   if (y.retention.newClients + y.retention.returningClients > 0) {
     lines.push(
-      `• Клиенты:      ${y.retention.newClients} новых · ${y.retention.returningClients} постоянных (${fmtPct(y.retention.newPct ?? 0)}/${fmtPct(y.retention.returningPct ?? 0)})`,
+      `• Клиенты: ${y.retention.newClients} новых · ${y.retention.returningClients} постоянных (${fmtPct(y.retention.newPct ?? 0)}/${fmtPct(y.retention.returningPct ?? 0)})`,
     );
   }
 
@@ -108,14 +109,14 @@ export function renderYesterdayMessage(data: DailyReportData): string {
   const dynLines: string[] = [];
   const fmtDelta = (n: number): string => ` (${n >= 0 ? '+' : '−'}${Math.abs(n)}%)`;
   if (dyn.week.deltaPct !== null) {
-    dynLines.push(`Неделя:   ${fmtMoney(dyn.week.value)} vs ${fmtMoney(dyn.week.prev)}${fmtDelta(dyn.week.deltaPct)}`);
+    dynLines.push(`Неделя: <b>${fmtMoney(dyn.week.value)}</b> vs <b>${fmtMoney(dyn.week.prev)}</b>${fmtDelta(dyn.week.deltaPct)}`);
   }
   if (dyn.month.deltaPct !== null) {
-    dynLines.push(`Месяц:    ${fmtMoney(dyn.month.value)} vs ${fmtMoney(dyn.month.prev)}${fmtDelta(dyn.month.deltaPct)}`);
+    dynLines.push(`Месяц: <b>${fmtMoney(dyn.month.value)}</b> vs <b>${fmtMoney(dyn.month.prev)}</b>${fmtDelta(dyn.month.deltaPct)}`);
   }
   if (dynLines.length > 0) {
     lines.push('');
-    lines.push('📈 Динамика выручки');
+    lines.push('<b>📈 Динамика выручки</b>');
     lines.push(...dynLines);
   }
 
@@ -144,32 +145,32 @@ export function renderYesterdayMessage(data: DailyReportData): string {
     const yesterdayM = (y.revenue / 1_000_000).toFixed(1);
 
     lines.push('');
-    lines.push('💰 План месяца');
-    lines.push(`Цель:       ${targetM}М\u00a0₸ (${dailyM}М\u00a0₸ в день)`);
-    lines.push(`Прошло:     ${day} из ${daysInMonth} дней`);
-    lines.push(`Ожидалось:  ${expectedM}М\u00a0₸`);
-    lines.push(`Факт:       ${mtdM}М\u00a0₸`);
-    lines.push(`Темп:       ${fmtPct(y.monthlyGoalPct)}`);
+    lines.push('<b>💰 План месяца</b>');
+    lines.push(`Цель: ${targetM}М ₸ (${dailyM}М ₸ в день)`);
+    lines.push(`Прошло: ${day} из ${daysInMonth} дней`);
+    lines.push(`Ожидалось: ${expectedM}М ₸`);
+    lines.push(`Факт: <b>${mtdM}М ₸</b>`);
+    lines.push(`Темп: <b>${fmtPct(y.monthlyGoalPct)}</b>`);
     if (yesterdayPctOfDaily !== null) {
-      lines.push(`Вчера:      ${yesterdayM}М\u00a0₸ из ${dailyM}М нормы (${yesterdayPctOfDaily}%)`);
+      lines.push(`Вчера: ${yesterdayM}М ₸ из ${dailyM}М нормы (${yesterdayPctOfDaily}%)`);
     }
   }
 
   // Sources — only when there are attended visits
   if (y.sources.length > 0) {
     lines.push('');
-    lines.push('📡 Откуда записи');
+    lines.push('<b>📡 Откуда записи</b>');
     for (const s of y.sources.slice(0, 4)) {
-      lines.push(`• ${s.source} — ${pluralBookings(s.visits)} (${fmtPct(s.sharePct)})`);
+      lines.push(`• ${escapeHtml(s.source)} — ${pluralBookings(s.visits)} (${fmtPct(s.sharePct)})`);
     }
   }
 
   // Top staff
   if (y.topStaff.length > 0) {
     lines.push('');
-    lines.push('🏆 Топ-3 мастера');
+    lines.push('<b>🏆 Топ-3 мастера</b>');
     y.topStaff.forEach((s, i) => {
-      lines.push(`${i + 1}. ${s.name} — ${fmtMoney(s.revenue)} (${pluralVisits(s.visits)})`);
+      lines.push(`${i + 1}. ${escapeHtml(s.name)} — ${fmtMoney(s.revenue)} (${pluralVisits(s.visits)})`);
     });
   }
 
@@ -177,7 +178,7 @@ export function renderYesterdayMessage(data: DailyReportData): string {
   if (y.aiInsight !== null) {
     lines.push('');
     lines.push('💡 Главный инсайт');
-    lines.push(y.aiInsight);
+    lines.push(`<blockquote>${escapeHtml(y.aiInsight)}</blockquote>`);
   }
 
   return lines.join('\n');
@@ -192,21 +193,20 @@ export function renderTodayMessage(data: DailyReportData): string {
 
   const lines: string[] = [];
 
-  lines.push(`📅 Сегодня · ${dateStr}`);
+  lines.push(`<i>📅 Сегодня · ${dateStr}</i>`);
   lines.push('');
 
-  lines.push(`• Записей:  ${t.scheduled}`);
+  lines.push(`• Записей: ${t.scheduled}`);
   if (t.utilizationPct !== null) {
-    lines.push(`• Загрузка: ${fmtPct(t.utilizationPct)}`);
+    lines.push(`• Загрузка: <b>${fmtPct(t.utilizationPct)}</b>`);
   }
 
   // Category breakdown — only when non-empty
   if (t.categories.length > 0) {
     lines.push('');
-    lines.push('📊 Заполненность по категориям');
+    lines.push('<b>📊 Заполненность по категориям</b>');
     for (const cat of t.categories) {
-      const label = cat.name.padEnd(12);
-      lines.push(`• ${label} ${fmtPct(cat.fillPct)} (${pluralBookings(cat.visits)})`);
+      lines.push(`• ${escapeHtml(cat.name)} — ${fmtPct(cat.fillPct)} (${pluralBookings(cat.visits)})`);
     }
   }
 
