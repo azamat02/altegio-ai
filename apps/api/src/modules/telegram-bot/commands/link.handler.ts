@@ -4,6 +4,7 @@ import type { InviteCodeService } from '../invite-code.service';
 import type { TenantChatsService } from '../tenant-chats.service';
 import type { TenantsService } from '../../tenants/tenants.service';
 import type { BotLogsService } from '../bot-logs.service';
+import { buildMainReplyKeyboard } from '../utils/keyboards';
 
 export function registerLink(
   bot: Telegraf<BotContext>,
@@ -12,6 +13,7 @@ export function registerLink(
     chats: TenantChatsService;
     tenants: TenantsService;
     logs: BotLogsService;
+    tmaUrl?: string;
   },
 ): void {
   bot.command('link', async (ctx) => {
@@ -35,6 +37,9 @@ export function registerLink(
 
     const tenant = await deps.tenants.findById(result.tenantId);
     await deps.chats.linkMember(result.tenantId, chatId);
-    await ctx.reply(`Подключено к салону «${tenant?.salonName ?? result.tenantId}». Автоотчёт включён, /unsubscribe чтобы выключить.`);
+    await ctx.reply(
+      `Подключено к салону «${tenant?.salonName ?? result.tenantId}». Автоотчёт включён, /unsubscribe чтобы выключить.`,
+      { reply_markup: buildMainReplyKeyboard(deps.tmaUrl) },
+    );
   });
 }

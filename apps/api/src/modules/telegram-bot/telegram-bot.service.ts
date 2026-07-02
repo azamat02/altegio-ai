@@ -71,7 +71,7 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
     this.bot = new Telegraf<BotContext>(token);
     this.bot.use(resolveChatMiddleware(this.tenantChats));
 
-    registerStart(this.bot, this.logs);
+    registerStart(this.bot, { logs: this.logs, tmaUrl: loadConfig().TMA_URL });
     registerHelp(this.bot, this.logs);
 
     // Gate linked-only commands: everything except /start, /help, /link requires a link.
@@ -85,7 +85,7 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
       return linkedGuard(ctx as unknown as BotContext, next);
     });
 
-    registerLink(this.bot, { codes: this.codes, chats: this.tenantChats, tenants: this.tenants, logs: this.logs });
+    registerLink(this.bot, { codes: this.codes, chats: this.tenantChats, tenants: this.tenants, logs: this.logs, tmaUrl: loadConfig().TMA_URL });
     registerReport(this.bot, { reports: this.reports, tenants: this.tenants, logs: this.logs });
     registerStatus(this.bot, { tenants: this.tenants, deliveries: this.deliveries, logs: this.logs });
     registerStaff(this.bot, { metrics: this.metrics, tenants: this.tenants, logs: this.logs });
@@ -97,10 +97,36 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
     registerInvite(this.bot, { codes: this.codes, tenants: this.tenants, logs: this.logs });
     registerSync(this.bot, { sync: this.sync, telegram: this.telegram, logs: this.logs });
 
+    void this.registerTelegramUi(loadConfig().TMA_URL);
+
     // Do NOT await bot.launch() — it resolves only when the bot stops.
     this.bot.launch({ dropPendingUpdates: false })
       .catch((err) => this.log.error(`bot.launch failed: ${err?.message}`));
     this.log.log('Telegram bot polling started');
+  }
+
+  private async registerTelegramUi(tmaUrl?: string): Promise<void> {
+    if (!this.bot) return;
+    try {
+      await this.bot.telegram.setMyCommands([
+        { command: 'report', description: 'Отчёт за день' },
+        { command: 'staff', description: 'Мастера за день' },
+        { command: 'status', description: 'Статус доставки отчётов' },
+        { command: 'subscribe', description: 'Подписка на утренний отчёт' },
+        { command: 'help', description: 'Справка' },
+        { command: 'link', description: 'Привязать салон по коду' },
+        { command: 'invite', description: 'Пригласить сотрудника (владелец)' },
+        { command: 'sync', description: 'Синхронизация данных (владелец)' },
+      ]);
+      if (tmaUrl) {
+        await this.bot.telegram.setChatMenuButton({
+          menuButton: { type: 'web_app', text: 'Дашборд', web_app: { url: tmaUrl } },
+        });
+      }
+      this.log.log('Telegram UI registered (commands + menu button)');
+    } catch (err: any) {
+      this.log.warn(`Telegram UI registration failed: ${err?.message ?? err}`);
+    }
   }
 
   private async acquireLock(): Promise<boolean> {
