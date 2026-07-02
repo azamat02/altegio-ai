@@ -15,6 +15,10 @@ export class TmaService {
     return new Date(Date.UTC(y, m - 1, d) - n * 86400000).toISOString().slice(0, 10);
   }
 
+  private todayInTz(tz: string): string {
+    return new Date().toLocaleDateString('en-CA', { timeZone: tz }); // 'YYYY-MM-DD' in tenant tz
+  }
+
   private async tz(tenantId: string): Promise<string> {
     const t = await this.tenants.findById(tenantId);
     if (!t) throw new Error(`Tenant ${tenantId} not found`);
@@ -24,11 +28,13 @@ export class TmaService {
   async summary(tenantId: string, date?: string): Promise<TmaSummary> {
     const t = await this.tenants.findById(tenantId);
     if (!t) throw new Error(`Tenant ${tenantId} not found`);
-    // buildDailyReportData uses reportDate and reports on reportDate - 1 as "yesterday"
-    const reportDate = date ?? new Date().toISOString().slice(0, 10);
+    const tz = t.timezone;
+    const summarizedDay = date ?? this.subtractDays(this.todayInTz(tz), 1);
+    // buildDailyReportData reports on (arg - 1), so pass summarizedDay + 1
+    const reportDate = this.subtractDays(summarizedDay, -1);
     const data = await this.metrics.buildDailyReportData(tenantId, reportDate);
-    const y = data.yesterday;
-    const revenue30d = await this.metrics.revenueSeries(tenantId, 30, y.date, t.timezone);
+    const y = data.yesterday; // == summarizedDay
+    const revenue30d = await this.metrics.revenueSeries(tenantId, 30, y.date, tz);
     return {
       salonName: data.salonName,
       date: y.date,
@@ -49,7 +55,7 @@ export class TmaService {
 
   async staffTrend(tenantId: string, staffId: number, days: number): Promise<TrendPoint[]> {
     const tz = await this.tz(tenantId);
-    const endDate = this.subtractDays(new Date().toISOString().slice(0, 10), 1);
+    const endDate = this.subtractDays(this.todayInTz(tz), 1);
     return this.metrics.staffRevenueTrend(tenantId, staffId, days, endDate, tz);
   }
 }

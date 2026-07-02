@@ -73,11 +73,13 @@ describe('TMA endpoints (int)', () => {
 
   it('returns a summary', async () => {
     const res = await request(app.getHttpServer())
-      .get('/tma/summary?date=2026-06-11')
+      .get('/tma/summary?date=2026-06-10')
       .set('Authorization', `tma ${sign(42)}`)
       .expect(200);
     expect(res.body.salonName).toBe('S');
     expect(Array.isArray(res.body.revenue30d)).toBe(true);
+    expect(res.body.date).toBe('2026-06-10');
+    expect(res.body.revenue).toBe(10000);
   });
 
   it('returns a staff trend', async () => {
