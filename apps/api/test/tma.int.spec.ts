@@ -89,4 +89,23 @@ describe('TMA endpoints (int)', () => {
       .expect(200);
     expect(res.body.series).toHaveLength(5);
   });
+
+  it('staff?compare=1 returns rows+totals with prev window', async () => {
+    const res = await request(app.getHttpServer())
+      .get('/tma/staff?from=2026-06-08&to=2026-06-14&compare=1')
+      .set('Authorization', `tma ${sign(42)}`)
+      .expect(200);
+    expect(res.body.rows[0]).toMatchObject({ name: 'Alice', revenue: 10000, prevRevenue: 0, deltaPct: null });
+    expect(res.body.totals).toMatchObject({ revenue: 10000, prevRevenue: 0, deltaPct: null });
+  });
+
+  it('summary carries dynamics through', async () => {
+    const res = await request(app.getHttpServer())
+      .get('/tma/summary?date=2026-06-10')
+      .set('Authorization', `tma ${sign(42)}`)
+      .expect(200);
+    expect(res.body.dynamics).toEqual(
+      expect.objectContaining({ week: expect.any(Object), month: expect.any(Object) }),
+    );
+  });
 });

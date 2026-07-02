@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { MetricsService } from '../metrics/metrics.service';
 import { TenantsService } from '../tenants/tenants.service';
-import type { TmaSummary, StaffTableRow, TrendPoint } from '@altegio/shared';
+import type { TmaSummary, StaffTableRow, TrendPoint, StaffCompareResponse } from '@altegio/shared';
+import { previousWindow } from './period';
 
 @Injectable()
 export class TmaService {
@@ -52,6 +53,25 @@ export class TmaService {
 
   async staff(tenantId: string, from: string, to: string): Promise<StaffTableRow[]> {
     return this.metrics.staffTable(tenantId, from, to, await this.tz(tenantId));
+  }
+
+  async staffCompare(tenantId: string, from: string, to: string): Promise<StaffCompareResponse> {
+    const tz = await this.tz(tenantId);
+    const prev = previousWindow(from, to);
+    const [cur, prevRows] = await Promise.all([
+      this.metrics.staffTable(tenantId, from, to, tz),
+      this.metrics.staffTable(tenantId, prev.from, prev.to, tz),
+    ]);
+    const prevBy = new Map(prevRows.map((r) => [r.staffId, r.revenue]));
+    const pct = (curV: number, prevV: number): number | null =>
+      prevV > 0 ? Math.round(((curV - prevV) / prevV) * 100) : null;
+    const rows = cur.map((r) => {
+      const prevRevenue = prevBy.get(r.staffId) ?? 0;
+      return { ...r, prevRevenue, deltaPct: pct(r.revenue, prevRevenue) };
+    });
+    const revenue = cur.reduce((s, r) => s + r.revenue, 0);
+    const prevRevenue = prevRows.reduce((s, r) => s + r.revenue, 0);
+    return { rows, totals: { revenue, prevRevenue, deltaPct: pct(revenue, prevRevenue) } };
   }
 
   async staffTrend(tenantId: string, staffId: number, days: number): Promise<TrendPoint[]> {

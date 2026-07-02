@@ -14,8 +14,15 @@ export class TmaController {
   }
 
   @Get('staff')
-  staff(@Req() req: any, @Query('from') from: string, @Query('to') to: string) {
-    return this.tma.staff(req.tma.tenantId, from, to);
+  staff(
+    @Req() req: any,
+    @Query('from') from: string,
+    @Query('to') to: string,
+    @Query('compare') compare?: string,
+  ) {
+    return compare === '1'
+      ? this.tma.staffCompare(req.tma.tenantId, from, to)
+      : this.tma.staff(req.tma.tenantId, from, to);
   }
 
   @Get('staff/:id/trend')
