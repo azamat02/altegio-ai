@@ -761,6 +761,51 @@ export class MetricsService {
   }
 
   // ---------------------------------------------------------------------------
+  // Task 2 (TMA v2b) — lossesData: SQL ingredients for the losses screen
+  // ---------------------------------------------------------------------------
+
+  async lossesData(tenantId: string, from: string, to: string, tz: string, sleepingCutoff: string) {
+    const [rec] = await this.ds.query(
+      `SELECT COALESCE(SUM(cost) FILTER (WHERE attendance = 1), 0)::numeric AS revenue,
+              COUNT(*) FILTER (WHERE attendance = 1)::int AS visits,
+              COUNT(*) FILTER (WHERE attendance = -1)::int AS cancelled,
+              COUNT(*) FILTER (WHERE attendance = 2)::int AS no_show_count,
+              COALESCE(SUM(cost) FILTER (WHERE attendance = 2), 0)::numeric AS no_show_lost,
+              COALESCE(SUM(seance_length) FILTER (WHERE attendance = 1), 0)::int AS booked_sec
+       FROM records
+       WHERE tenant_id = $1 AND deleted = false
+         AND (datetime AT TIME ZONE $4)::date BETWEEN $2 AND $3`,
+      [tenantId, from, to, tz],
+    );
+    const [cap] = await this.ds.query(
+      `SELECT COALESCE(SUM(working_minutes), 0)::int AS capacity_min
+       FROM resource_schedule
+       WHERE tenant_id = $1 AND date BETWEEN $2 AND $3`,
+      [tenantId, from, to],
+    );
+    const [sleep] = await this.ds.query(
+      `SELECT COUNT(*)::int AS sleeping
+       FROM clients
+       WHERE tenant_id = $1 AND visits_count >= 1
+         AND last_visit_date IS NOT NULL AND last_visit_date < $2`,
+      [tenantId, sleepingCutoff],
+    );
+    const revenue = Math.round(Number(rec.revenue));
+    const visits = Number(rec.visits);
+    return {
+      revenue,
+      visits,
+      cancelled: Number(rec.cancelled),
+      noShowCount: Number(rec.no_show_count),
+      noShowLost: Math.round(Number(rec.no_show_lost)),
+      bookedMin: Number(rec.booked_sec) / 60,
+      capacityMin: Number(cap.capacity_min),
+      sleepingCount: Number(sleep.sleeping),
+      avgCheck: visits ? Math.round(revenue / visits) : 0,
+    };
+  }
+
+  // ---------------------------------------------------------------------------
   // Utilities
   // ---------------------------------------------------------------------------
 

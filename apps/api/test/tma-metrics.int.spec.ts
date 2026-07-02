@@ -159,3 +159,49 @@ describe('MetricsService.staffDetail (int)', () => {
     expect(await svc.staffDetail(tenantId, 999, '2026-06-10', '2026-06-10', 'UTC')).toBeNull();
   });
 });
+
+describe('MetricsService.lossesData (int)', () => {
+  let db: TestDb; let svc: MetricsService; let tenantId: string;
+
+  beforeAll(async () => {
+    db = await startTestDb();
+    const tenants = new TenantsService(
+      db.ds.getRepository(TenantEntity),
+      new TokenCipher(process.env.APP_ENCRYPTION_KEY!),
+    );
+    svc = new MetricsService(db.ds, tenants);
+    const t = await tenants.create({ salonName: 'L', locationId: 11, altegioToken: 'x', timezone: 'UTC' });
+    tenantId = t.id;
+
+    await db.ds.query(
+      `INSERT INTO staff (tenant_id, altegio_staff_id, name, fired, bookable) VALUES ($1, 1, 'A', false, true)`, [tenantId]);
+    await db.ds.query(
+      `INSERT INTO resource_schedule (tenant_id, resource_altegio_id, date, working_minutes) VALUES
+       ($1, 1, '2026-06-10', 480), ($1, 1, '2026-06-11', 480)`, [tenantId]);
+    // 2 completed (7200s = 120 min booked, 30000 revenue), 1 cancelled, 1 no-show (cost 8000)
+    await db.ds.query(
+      `INSERT INTO records (tenant_id, altegio_record_id, altegio_staff_id, altegio_client_id, datetime, seance_length, cost, attendance, paid_full, is_online, deleted) VALUES
+       ($1, 1, 1, 100, '2026-06-10 10:00+00', 3600, 10000, 1, 1, false, false),
+       ($1, 2, 1, 101, '2026-06-11 10:00+00', 3600, 20000, 1, 1, false, false),
+       ($1, 3, 1, 102, '2026-06-10 12:00+00', 3600, 0, -1, 0, false, false),
+       ($1, 4, 1, 103, '2026-06-11 12:00+00', 3600, 8000, 2, 0, false, false)`, [tenantId]);
+    // clients: one sleeping (last visit long ago, spent), one active, one NULL last_visit
+    await db.ds.query(
+      `INSERT INTO clients (tenant_id, altegio_client_id, name, phone, visits_count, last_visit_date, spent) VALUES
+       ($1, 100, 'Спящая', '+7700', 5, '2026-03-01', 200000),
+       ($1, 101, 'Активная', '+7701', 3, '2026-06-11', 90000),
+       ($1, 102, 'Без даты', NULL, 1, NULL, 10000)`, [tenantId]);
+  }, 60000);
+  afterAll(async () => { await db.stop(); });
+
+  it('returns all ingredients over the range', async () => {
+    const d = await svc.lossesData(tenantId, '2026-06-10', '2026-06-11', 'UTC', '2026-05-01');
+    expect(d).toEqual({
+      revenue: 30000, visits: 2, cancelled: 1,
+      noShowCount: 1, noShowLost: 8000,
+      bookedMin: 120, capacityMin: 960,
+      sleepingCount: 1, // only 'Спящая' (2026-03-01 < 2026-05-01); NULL excluded
+      avgCheck: 15000,
+    });
+  });
+});
