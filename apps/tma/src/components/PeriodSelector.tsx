@@ -1,14 +1,21 @@
 export type PeriodKind = '7d' | '30d' | 'month';
 
+function fmt(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 export function range(kind: PeriodKind): { from: string; to: string } {
   const today = new Date();
-  const to = new Date(today.getTime() - 86400000).toISOString().slice(0, 10); // yesterday
+  const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
+  const to = fmt(yesterday);
   if (kind === 'month') {
-    const from = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().slice(0, 10);
-    return { from, to };
+    return { from: fmt(new Date(today.getFullYear(), today.getMonth(), 1)), to };
   }
   const days = kind === '7d' ? 7 : 30;
-  const from = new Date(today.getTime() - days * 86400000).toISOString().slice(0, 10);
+  const from = fmt(new Date(today.getFullYear(), today.getMonth(), today.getDate() - days));
   return { from, to };
 }
 
