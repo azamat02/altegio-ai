@@ -335,3 +335,84 @@ body {
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* ── Tab bar ──────────────────────────────────────────────── */
+
+.tab-bar {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-card);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  margin: 0 -16px;
+  padding: 0 16px;
+}
+
+.tab-bar__item {
+  flex: 1;
+  padding: 12px 0;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.tab-bar__item.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* ── Period selector pills ─────────────────────────────────── */
+
+.pills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pill {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.pill.on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* ── Sparkline ─────────────────────────────────────────────── */
+
+.sparkline {
+  display: block;
+  width: 100%;
+  height: 36px;
+  overflow: visible;
+  margin-top: 8px;
+}
+
+/* ── Staff row ─────────────────────────────────────────────── */
+
+.row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.small {
+  font-size: 12px;
+}

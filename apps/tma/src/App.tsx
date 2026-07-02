@@ -4,10 +4,13 @@ import type { TmaSummary } from '@altegio/shared';
 import { initTelegram, getTheme } from './telegram';
 import { api } from './api';
 import { Summary } from './screens/Summary';
+import { Staff } from './screens/Staff';
+import { TabBar, type TabId } from './components/TabBar';
 
 export default function App() {
   const [summary, setSummary] = useState<TmaSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [tab, setTab] = useState<TabId>('summary');
 
   useEffect(() => {
     initTelegram();
@@ -48,7 +51,9 @@ export default function App() {
 
   return (
     <div className="app">
-      <Summary summary={summary} />
+      <TabBar active={tab} onChange={setTab} />
+      {tab === 'summary' && <Summary summary={summary} />}
+      {tab === 'staff' && <Staff />}
     </div>
   );
 }
