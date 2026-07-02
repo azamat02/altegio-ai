@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import './theme.css';
 import type { TmaSummary } from '@altegio/shared';
-import { initTelegram, getTheme } from './telegram';
+import { initTelegram, getTheme, getInitData } from './telegram';
 import { api } from './api';
 import { Summary } from './screens/Summary';
 import { Staff } from './screens/Staff';
@@ -15,8 +15,27 @@ export default function App() {
   useEffect(() => {
     initTelegram();
     document.documentElement.setAttribute('data-theme', getTheme());
+    // Some Telegram clients (notably the native macOS app) do not pass initData
+    // to Mini Apps — fail fast with a precise message instead of a doomed 401.
+    if (!getInitData()) {
+      setError('NO_INITDATA');
+      return;
+    }
     api.get<TmaSummary>('/tma/summary').then(setSummary).catch((e: Error) => setError(e.message));
   }, []);
+
+  if (error === 'NO_INITDATA') {
+    return (
+      <div className="app">
+        <div className="state-screen">
+          <p className="muted">
+            Этот клиент Telegram не передал данные авторизации.
+            Откройте дашборд через Telegram на телефоне (iOS/Android).
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (error === 'NO_SALON') {
     return (
