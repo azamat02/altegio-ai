@@ -10,6 +10,11 @@ async function bootstrap() {
   }
 
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  app.enableCors({
+    origin: (process.env.TMA_ORIGINS?.split(',').map((s) => s.trim()).filter(Boolean)) ?? true,
+    methods: ['GET'],
+    allowedHeaders: ['Authorization', 'Content-Type'],
+  });
   const port = Number(process.env.PORT ?? 3000);
   await app.listen(port);
   Logger.log(`API listening on :${port}`, 'Bootstrap');

@@ -11,6 +11,7 @@ import { TelegramModule } from './modules/telegram/telegram.module';
 import { TelegramBotModule } from './modules/telegram-bot/telegram-bot.module';
 import { SchedulerModule } from './modules/scheduler/scheduler.module';
 import { HealthModule } from './modules/health/health.module';
+import { TmaModule } from './modules/tma/tma.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { HealthModule } from './modules/health/health.module';
     TelegramBotModule,
     SchedulerModule.forRoot(),
     HealthModule,
+    TmaModule,
   ],
 })
 export class AppModule {}
