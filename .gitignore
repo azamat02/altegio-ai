@@ -15,3 +15,8 @@ demo-site/
 # git worktrees — superpowers isolated workspaces
 .worktrees/
 
+# local demo artifacts
+Altegio-AI-Metrics.pdf
+apps/demo-malli
+demo-bot
+
