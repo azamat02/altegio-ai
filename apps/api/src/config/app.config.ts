@@ -12,6 +12,7 @@ const schema = z.object({
   ANTHROPIC_MODEL: z.string().default('claude-haiku-4-5-20251001'),
   TELEGRAM_BOT_TOKEN: z.string().min(1).optional().or(z.literal('').transform(() => undefined)),
   TELEGRAM_OWNER_CHAT_ID: z.string().optional().or(z.literal('').transform(() => undefined)),
+  TMA_URL: z.string().url().optional().or(z.literal('').transform(() => undefined)),
   APP_ENCRYPTION_KEY: z.string().regex(/^[0-9a-f]{64}$/, 'must be 32 bytes hex'),
   SENTRY_DSN: z.string().optional().or(z.literal('').transform(() => undefined)),
   LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
