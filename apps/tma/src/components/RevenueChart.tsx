@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import type { TrendPoint } from '@altegio/shared';
 
 interface RevenueChartProps {
@@ -5,6 +6,7 @@ interface RevenueChartProps {
 }
 
 export function RevenueChart({ points }: RevenueChartProps) {
+  const gradId = useId();
   if (!points || points.length < 2) return null;
 
   const W = 400;
@@ -38,7 +40,7 @@ export function RevenueChart({ points }: RevenueChartProps) {
       aria-hidden="true"
     >
       <defs>
-        <linearGradient id="chart-area-grad" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="var(--chart-line)" stopOpacity="0.18" />
           <stop offset="100%" stopColor="var(--chart-line)" stopOpacity="0" />
         </linearGradient>
@@ -49,7 +51,7 @@ export function RevenueChart({ points }: RevenueChartProps) {
       </defs>
 
       {/* Area fill */}
-      <path d={areaPath} fill="url(#chart-area-grad)" />
+      <path d={areaPath} fill={`url(#${gradId})`} />
 
       {/* Line */}
       <path
