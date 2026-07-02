@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { TenantsService } from '../tenants/tenants.service';
-import { CategoryFill, DailyReportData, TopStaff, RevenueDynamics, Retention, NoShow, StaffTableRow } from '@altegio/shared';
+import { CategoryFill, DailyReportData, TopStaff, RevenueDynamics, Retention, NoShow, StaffTableRow, TrendPoint } from '@altegio/shared';
 
 @Injectable()
 export class MetricsService {
@@ -629,6 +629,51 @@ export class MetricsService {
       revenue: Math.round(Number(r.revenue)),
       sharePct: totalVisits > 0 ? Math.round((Number(r.visits) / totalVisits) * 100) : 0,
     }));
+  }
+
+  // ---------------------------------------------------------------------------
+  // Task 3 (TMA) — staffRevenueTrend + revenueSeries daily series
+  // ---------------------------------------------------------------------------
+
+  private buildDateAxis(endDate: string, days: number): string[] {
+    const out: string[] = [];
+    const [y, m, d] = endDate.split('-').map(Number);
+    const end = Date.UTC(y, m - 1, d);
+    for (let i = days - 1; i >= 0; i--) out.push(new Date(end - i * 86400000).toISOString().slice(0, 10));
+    return out;
+  }
+
+  private zeroFill(axis: string[], rows: Array<{ date: string; revenue: number }>): TrendPoint[] {
+    const map = new Map(rows.map((r) => [r.date, Math.round(Number(r.revenue))]));
+    return axis.map((date) => ({ date, revenue: map.get(date) ?? 0 }));
+  }
+
+  async staffRevenueTrend(tenantId: string, staffId: number, days: number, endDate: string, tz: string): Promise<TrendPoint[]> {
+    const axis = this.buildDateAxis(endDate, days);
+    const rows = await this.ds.query(
+      `SELECT (datetime AT TIME ZONE $4)::date::text AS date,
+              COALESCE(SUM(cost), 0)::numeric AS revenue
+       FROM records
+       WHERE tenant_id = $1 AND altegio_staff_id = $2 AND attendance = 1 AND deleted = false
+         AND (datetime AT TIME ZONE $4)::date BETWEEN $3 AND $5
+       GROUP BY 1`,
+      [tenantId, staffId, axis[0], tz, endDate],
+    );
+    return this.zeroFill(axis, rows);
+  }
+
+  async revenueSeries(tenantId: string, days: number, endDate: string, tz: string): Promise<TrendPoint[]> {
+    const axis = this.buildDateAxis(endDate, days);
+    const rows = await this.ds.query(
+      `SELECT (datetime AT TIME ZONE $3)::date::text AS date,
+              COALESCE(SUM(cost), 0)::numeric AS revenue
+       FROM records
+       WHERE tenant_id = $1 AND attendance = 1 AND deleted = false
+         AND (datetime AT TIME ZONE $3)::date BETWEEN $2 AND $4
+       GROUP BY 1`,
+      [tenantId, axis[0], tz, endDate],
+    );
+    return this.zeroFill(axis, rows);
   }
 
   // ---------------------------------------------------------------------------

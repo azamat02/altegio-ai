@@ -68,3 +68,40 @@ describe('MetricsService.staffTable (int)', () => {
     expect(rows[0].name).toBe('Alice');
   });
 });
+
+describe('MetricsService trend series (int)', () => {
+  let db: TestDb; let svc: MetricsService; let tenantId: string;
+
+  beforeAll(async () => {
+    db = await startTestDb();
+    const tenants = new TenantsService(
+      db.ds.getRepository(TenantEntity),
+      new TokenCipher(process.env.APP_ENCRYPTION_KEY!),
+    );
+    svc = new MetricsService(db.ds, tenants);
+    const t = await tenants.create({ salonName: 'S', locationId: 2, altegioToken: 'x', timezone: 'UTC' });
+    tenantId = t.id;
+    await db.ds.query(
+      `INSERT INTO staff (tenant_id, altegio_staff_id, name, fired, bookable) VALUES ($1, 1, 'Alice', false, true)`, [tenantId]);
+    await db.ds.query(
+      `INSERT INTO records (tenant_id, altegio_record_id, altegio_staff_id, altegio_client_id, datetime, seance_length, cost, attendance, paid_full, is_online, deleted) VALUES
+       ($1, 1, 1, 100, '2026-06-08 10:00+00', 3600, 10000, 1, 1, false, false),
+       ($1, 2, 1, 101, '2026-06-10 10:00+00', 3600, 20000, 1, 1, false, false)`, [tenantId]);
+  }, 60000);
+  afterAll(async () => { await db.stop(); });
+
+  it('staffRevenueTrend returns exactly `days` zero-filled ascending points', async () => {
+    const series = await svc.staffRevenueTrend(tenantId, 1, 5, '2026-06-10', 'UTC');
+    expect(series.map((p) => p.date)).toEqual(['2026-06-06', '2026-06-07', '2026-06-08', '2026-06-09', '2026-06-10']);
+    expect(series.map((p) => p.revenue)).toEqual([0, 0, 10000, 0, 20000]);
+  });
+
+  it('revenueSeries sums tenant-wide', async () => {
+    const series = await svc.revenueSeries(tenantId, 3, '2026-06-10', 'UTC');
+    expect(series).toEqual([
+      { date: '2026-06-08', revenue: 10000 },
+      { date: '2026-06-09', revenue: 0 },
+      { date: '2026-06-10', revenue: 20000 },
+    ]);
+  });
+});
