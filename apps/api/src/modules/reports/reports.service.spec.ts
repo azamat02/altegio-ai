@@ -1,6 +1,14 @@
 import { ReportsService } from './reports.service';
 import { baseFixture } from './__fixtures__/report-data';
 
+// Mock loadConfig so tests don't need real env vars
+jest.mock('../../config/app.config', () => ({
+  loadConfig: jest.fn().mockReturnValue({
+    TMA_URL: 'https://tma.example.com',
+    TELEGRAM_BOT_TOKEN: undefined,
+  }),
+}));
+
 // Clone so tests can mutate aiInsight without affecting others
 function cloneFixture() {
   return {
@@ -26,6 +34,19 @@ function makeTenantChats(chatId = 12345) {
   };
 }
 
+// Default tenant fixture used across tests — includes createdAt and timezone
+// so the footer builder can compute minDate/maxDate.
+function makeTenant(overrides: Record<string, any> = {}) {
+  return {
+    id: 't-1',
+    salonName: 'Салон №1',
+    telegramChatId: 12345,
+    timezone: 'UTC',
+    createdAt: new Date('2024-01-01T00:00:00Z'),
+    ...overrides,
+  };
+}
+
 function makeSvc(overrides: {
   metrics?: any;
   ai?: any;
@@ -44,7 +65,7 @@ function makeSvc(overrides: {
     sendReport: jest.fn().mockResolvedValue({ messageId: 1 }),
   };
   const tenants = overrides.tenants ?? {
-    findById: jest.fn().mockResolvedValue({ id: 't-1', salonName: 'Салон №1', telegramChatId: 12345 }),
+    findById: jest.fn().mockResolvedValue(makeTenant()),
   };
   const deliveries = overrides.deliveries ?? makeDeliveriesRepo();
   const tenantChats = overrides.tenantChats ?? makeTenantChats();
@@ -74,6 +95,15 @@ describe('ReportsService.generateAndDeliver', () => {
     const calls = deliveries.save.mock.calls;
     expect(calls[0][0]).toMatchObject({ messageKind: 'yesterday', status: 'sent', tenantId: 't-1', date: '2026-04-19' });
     expect(calls[1][0]).toMatchObject({ messageKind: 'today', status: 'sent', tenantId: 't-1', date: '2026-04-19' });
+
+    // yesterday call must carry the nav footer; today call must not
+    const sendCalls = telegram.sendReport.mock.calls;
+    expect(sendCalls[0][2]).toEqual(
+      expect.objectContaining({
+        replyMarkup: expect.objectContaining({ inline_keyboard: expect.any(Array) }),
+      }),
+    );
+    expect(sendCalls[1][2]).toBeUndefined();
   });
 
   it('is idempotent per kind — a pre-sent kind is skipped, the other still sends', async () => {

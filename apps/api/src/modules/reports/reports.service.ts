@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import type { InlineKeyboardMarkup } from 'telegraf/typings/core/types/typegram';
 import { MetricsService } from '../metrics/metrics.service';
 import { renderYesterdayMessage, renderTodayMessage } from './template.renderer';
 import { AiInsightService } from './ai-insight.service';
@@ -8,6 +9,8 @@ import { TelegramService } from '../telegram/telegram.service';
 import { TenantsService } from '../tenants/tenants.service';
 import { ReportDeliveryEntity } from './entities/report-delivery.entity';
 import { TenantChatsService } from '../telegram-bot/tenant-chats.service';
+import { buildNavFooter } from '../telegram-bot/utils/keyboards';
+import { loadConfig } from '../../config/app.config';
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
@@ -32,6 +35,24 @@ export class ReportsService {
     const tenant = await this.tenants.findById(tenantId);
     if (!tenant) throw new Error(`Tenant ${tenantId} not found`);
 
+    const cfg = loadConfig();
+    const todayInTz = new Intl.DateTimeFormat('en-CA', {
+      timeZone: tenant.timezone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date());
+    const footer: InlineKeyboardMarkup = {
+      inline_keyboard: buildNavFooter({
+        kind: 'report',
+        date: reportDate,
+        tenantId,
+        minDate: tenant.createdAt.toISOString().slice(0, 10),
+        maxDate: todayInTz,
+        tmaUrl: cfg.TMA_URL,
+      }),
+    };
+
     const chats = await this.tenantChats.listSubscribedChats(tenantId);
     if (chats.length === 0) {
       this.log.warn(`Tenant ${tenantId} has no subscribed chats, skip delivery`);
@@ -54,7 +75,11 @@ export class ReportsService {
         if (already) continue;
 
         try {
-          const { messageId } = await this.telegram.sendReport(chatId, text);
+          const { messageId } = await this.telegram.sendReport(
+            chatId,
+            text,
+            kind === 'yesterday' ? { replyMarkup: footer } : undefined,
+          );
           await this.deliveries.save({
             tenantId, date: yesterdayDateString, messageKind: kind, chatId,
             messageId: messageId || null, sentAt: new Date(), status: 'sent', error: null,

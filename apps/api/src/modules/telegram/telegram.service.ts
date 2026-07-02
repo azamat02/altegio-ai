@@ -1,9 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Telegraf } from 'telegraf';
+import type { InlineKeyboardMarkup } from 'telegraf/typings/core/types/typegram';
 import { loadConfig } from '../../config/app.config';
 
+export interface SendReportOpts { replyMarkup?: InlineKeyboardMarkup }
+
 export interface ITelegramSender {
-  sendReport(chatId: number, text: string): Promise<{ messageId: number }>;
+  sendReport(chatId: number, text: string, opts?: SendReportOpts): Promise<{ messageId: number }>;
 }
 
 @Injectable()
@@ -16,7 +19,7 @@ export class TelegramService implements ITelegramSender {
     this.bot = cfg.TELEGRAM_BOT_TOKEN ? new Telegraf(cfg.TELEGRAM_BOT_TOKEN) : null;
   }
 
-  async sendReport(chatId: number, text: string): Promise<{ messageId: number }> {
+  async sendReport(chatId: number, text: string, opts?: SendReportOpts): Promise<{ messageId: number }> {
     if (!this.bot) {
       this.log.warn(`[dry-run] Would send to ${chatId}:\n${text}`);
       return { messageId: 0 };
@@ -24,7 +27,11 @@ export class TelegramService implements ITelegramSender {
     let attempts = 0;
     while (attempts < 2) {
       try {
-        const msg = await this.bot.telegram.sendMessage(chatId, text, { link_preview_options: { is_disabled: true } });
+        const msg = await this.bot.telegram.sendMessage(chatId, text, {
+          parse_mode: 'HTML',
+          link_preview_options: { is_disabled: true },
+          ...(opts?.replyMarkup ? { reply_markup: opts.replyMarkup } : {}),
+        });
         return { messageId: msg.message_id };
       } catch (err: any) {
         attempts++;
