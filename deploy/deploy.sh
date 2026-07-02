@@ -5,11 +5,12 @@ cd "$(dirname "$0")/.."
 git pull origin main
 
 COMPOSE=(docker compose --env-file .env -f docker/docker-compose.prod.yml)
-"${COMPOSE[@]}" pull
+# Pull only the registry-backed services; nginx/web is built locally from source.
+"${COMPOSE[@]}" pull api postgres redis
 "${COMPOSE[@]}" up -d
-# nginx.conf is bind-mounted; `up -d` does not recreate on a file change,
-# so force-recreate nginx to pick up config edits (e.g. cert paths, server_name).
-"${COMPOSE[@]}" up -d --force-recreate --no-deps nginx
+# nginx serves the built SPA and is bind-mounted its config; rebuild + recreate it
+# so both the frontend bundle and nginx.conf edits (cert paths, routing) take effect.
+"${COMPOSE[@]}" up -d --build --force-recreate --no-deps nginx
 docker image prune -f
 
 # --- health check: fail the deploy if the stack didn't come up ---
