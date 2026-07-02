@@ -1,4 +1,4 @@
-import { Controller, Get, Param, ParseIntPipe, Query, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, NotFoundException, Param, ParseIntPipe, Query, Req, UseGuards } from '@nestjs/common';
 import { TmaAuthGuard } from './tma-auth.guard';
 import { TmaService } from './tma.service';
 
@@ -30,5 +30,17 @@ export class TmaController {
     const n = Number(days);
     const series = await this.tma.staffTrend(req.tma.tenantId, id, Number.isInteger(n) && n > 0 ? n : 30);
     return { series };
+  }
+
+  @Get('staff/:id/detail')
+  async detail(
+    @Req() req: any,
+    @Param('id', ParseIntPipe) id: number,
+    @Query('from') from: string,
+    @Query('to') to: string,
+  ) {
+    const d = await this.tma.staffDetailFull(req.tma.tenantId, id, from, to);
+    if (!d) throw new NotFoundException('unknown staff');
+    return d;
   }
 }

@@ -108,4 +108,21 @@ describe('TMA endpoints (int)', () => {
       expect.objectContaining({ week: expect.any(Object), month: expect.any(Object) }),
     );
   });
+
+  it('staff/:id/detail returns the composed detail', async () => {
+    const res = await request(app.getHttpServer())
+      .get('/tma/staff/1/detail?from=2026-06-08&to=2026-06-14')
+      .set('Authorization', `tma ${sign(42)}`)
+      .expect(200);
+    expect(res.body).toMatchObject({ staffId: 1, name: 'Alice', revenue: 10000, visits: 1 });
+    expect(res.body.trend).toHaveLength(30);
+    expect(Array.isArray(res.body.services)).toBe(true);
+  });
+
+  it('staff/:id/detail 404s for unknown staff', async () => {
+    await request(app.getHttpServer())
+      .get('/tma/staff/999/detail?from=2026-06-08&to=2026-06-14')
+      .set('Authorization', `tma ${sign(42)}`)
+      .expect(404);
+  });
 });

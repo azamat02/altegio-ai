@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { MetricsService } from '../metrics/metrics.service';
 import { TenantsService } from '../tenants/tenants.service';
-import type { TmaSummary, StaffTableRow, TrendPoint, StaffCompareResponse } from '@altegio/shared';
+import type { TmaSummary, StaffTableRow, TrendPoint, StaffCompareResponse, StaffDetail } from '@altegio/shared';
 import { previousWindow } from './period';
 
 @Injectable()
@@ -78,5 +78,14 @@ export class TmaService {
     const tz = await this.tz(tenantId);
     const endDate = this.subtractDays(this.todayInTz(tz), 1);
     return this.metrics.staffRevenueTrend(tenantId, staffId, days, endDate, tz);
+  }
+
+  async staffDetailFull(tenantId: string, staffId: number, from: string, to: string): Promise<StaffDetail | null> {
+    const tz = await this.tz(tenantId);
+    const base = await this.metrics.staffDetail(tenantId, staffId, from, to, tz);
+    if (!base) return null;
+    const endDate = this.subtractDays(this.todayInTz(tz), 1);
+    const trend = await this.metrics.staffRevenueTrend(tenantId, staffId, 30, endDate, tz);
+    return { ...base, trend };
   }
 }
