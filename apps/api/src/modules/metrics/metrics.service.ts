@@ -326,14 +326,14 @@ export class MetricsService {
               COUNT(*) FILTER (WHERE r.attendance = -1)::int AS cancelled,
               COALESCE(SUM(r.seance_length) FILTER (WHERE r.attendance = 1), 0)::int AS booked_sec,
               cap.capacity_min,
-              COALESCE(nc.new_clients, 0)::int AS new_clients
+              COALESCE(MAX(nc.new_clients), 0)::int AS new_clients
        FROM records r
        JOIN staff s ON s.tenant_id = r.tenant_id AND s.altegio_staff_id = r.altegio_staff_id
        LEFT JOIN cap ON cap.staff_id = s.altegio_staff_id
        LEFT JOIN new_clients nc ON nc.altegio_staff_id = s.altegio_staff_id
        WHERE r.tenant_id = $1 AND r.deleted = false
          AND (r.datetime AT TIME ZONE $4)::date BETWEEN $2 AND $3
-       GROUP BY s.altegio_staff_id, s.name, cap.capacity_min, nc.new_clients
+       GROUP BY s.altegio_staff_id, s.name, cap.capacity_min
        HAVING COUNT(*) FILTER (WHERE r.attendance IN (1, -1)) > 0
        ORDER BY revenue DESC`,
       [tenantId, from, to, tz],
