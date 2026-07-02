@@ -10,8 +10,9 @@ async function bootstrap() {
   }
 
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const tmaOrigins = process.env.TMA_ORIGINS?.split(',').map((s) => s.trim()).filter(Boolean);
   app.enableCors({
-    origin: (process.env.TMA_ORIGINS?.split(',').map((s) => s.trim()).filter(Boolean)) ?? true,
+    origin: tmaOrigins && tmaOrigins.length ? tmaOrigins : true,
     methods: ['GET'],
     allowedHeaders: ['Authorization', 'Content-Type'],
   });
