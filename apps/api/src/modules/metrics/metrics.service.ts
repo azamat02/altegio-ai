@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { TenantsService } from '../tenants/tenants.service';
-import { CategoryFill, DailyReportData, TopStaff, RevenueDynamics, Retention, NoShow } from '@altegio/shared';
+import { CategoryFill, DailyReportData, TopStaff, RevenueDynamics, Retention, NoShow, StaffTableRow } from '@altegio/shared';
 
 @Injectable()
 export class MetricsService {
@@ -290,6 +290,72 @@ export class MetricsService {
       revenue: Number(r.revenue),
       visits: Number(r.visits),
     }));
+  }
+
+  // ---------------------------------------------------------------------------
+  // Task 2 (TMA) — staffTable: per-staff aggregates over a date range
+  // ---------------------------------------------------------------------------
+
+  async staffTable(tenantId: string, from: string, to: string, tz: string): Promise<StaffTableRow[]> {
+    const rows = await this.ds.query(
+      `WITH first_visit AS (
+         SELECT altegio_client_id, MIN((datetime AT TIME ZONE $4)::date) AS first_date
+         FROM records
+         WHERE tenant_id = $1 AND attendance = 1 AND altegio_client_id IS NOT NULL AND deleted = false
+         GROUP BY altegio_client_id
+       ),
+       new_clients AS (
+         SELECT r.altegio_staff_id, COUNT(DISTINCT r.altegio_client_id) AS new_clients
+         FROM records r
+         JOIN first_visit fv ON fv.altegio_client_id = r.altegio_client_id
+         WHERE r.tenant_id = $1 AND r.attendance = 1 AND r.deleted = false
+           AND (r.datetime AT TIME ZONE $4)::date = fv.first_date
+           AND fv.first_date BETWEEN $2 AND $3
+         GROUP BY r.altegio_staff_id
+       ),
+       cap AS (
+         SELECT resource_altegio_id AS staff_id, SUM(working_minutes)::int AS capacity_min
+         FROM resource_schedule
+         WHERE tenant_id = $1 AND date BETWEEN $2 AND $3
+         GROUP BY resource_altegio_id
+       )
+       SELECT s.altegio_staff_id::bigint AS staff_id,
+              s.name,
+              COALESCE(SUM(r.cost) FILTER (WHERE r.attendance = 1), 0)::numeric AS revenue,
+              COUNT(*) FILTER (WHERE r.attendance = 1)::int AS visits,
+              COUNT(*) FILTER (WHERE r.attendance = -1)::int AS cancelled,
+              COALESCE(SUM(r.seance_length) FILTER (WHERE r.attendance = 1), 0)::int AS booked_sec,
+              cap.capacity_min,
+              COALESCE(nc.new_clients, 0)::int AS new_clients
+       FROM records r
+       JOIN staff s ON s.tenant_id = r.tenant_id AND s.altegio_staff_id = r.altegio_staff_id
+       LEFT JOIN cap ON cap.staff_id = s.altegio_staff_id
+       LEFT JOIN new_clients nc ON nc.altegio_staff_id = s.altegio_staff_id
+       WHERE r.tenant_id = $1 AND r.deleted = false
+         AND (r.datetime AT TIME ZONE $4)::date BETWEEN $2 AND $3
+       GROUP BY s.altegio_staff_id, s.name, cap.capacity_min, nc.new_clients
+       HAVING COUNT(*) FILTER (WHERE r.attendance IN (1, -1)) > 0
+       ORDER BY revenue DESC`,
+      [tenantId, from, to, tz],
+    );
+    return rows.map((r: any): StaffTableRow => {
+      const revenue = Number(r.revenue);
+      const visits = Number(r.visits);
+      const cancelled = Number(r.cancelled);
+      const bookedMin = Number(r.booked_sec) / 60;
+      const capacity = r.capacity_min == null ? null : Number(r.capacity_min);
+      return {
+        staffId: Number(r.staff_id),
+        name: r.name,
+        revenue: Math.round(revenue),
+        visits,
+        avgCheck: visits ? Math.round(revenue / visits) : 0,
+        cancelPct: visits + cancelled ? Math.round((cancelled / (visits + cancelled)) * 100) : 0,
+        utilizationPct: capacity ? Math.round((bookedMin / capacity) * 100) : null,
+        newClients: Number(r.new_clients),
+        revenuePerHour: bookedMin ? Math.round(revenue / (bookedMin / 60)) : 0,
+      };
+    });
   }
 
   // ---------------------------------------------------------------------------
