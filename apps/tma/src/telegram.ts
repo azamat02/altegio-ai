@@ -39,10 +39,29 @@ function fromHashOrSession(): string {
   }
 }
 
+export function shouldRequestFullscreen(platform: string | undefined, hasApi: boolean): boolean {
+  return hasApi && (platform === 'ios' || platform === 'android');
+}
+
 export function initTelegram(): void {
   const t = tg();
   t?.ready();
   t?.expand();
+  const anyT = t as any;
+  if (!shouldRequestFullscreen(t?.platform, typeof anyT?.requestFullscreen === 'function')) return;
+  try {
+    anyT.requestFullscreen();
+  } catch {
+    return; // client refused — expanded mode is fine
+  }
+  const applySafeTop = () => {
+    const top = (anyT?.safeAreaInset?.top ?? 0) + (anyT?.contentSafeAreaInset?.top ?? 0);
+    document.documentElement.style.setProperty('--safe-top', `${top}px`);
+  };
+  for (const e of ['fullscreenChanged', 'safeAreaChanged', 'contentSafeAreaChanged']) {
+    anyT?.onEvent?.(e, applySafeTop);
+  }
+  setTimeout(applySafeTop, 300);
 }
 
 export const getInitData = (): string => tg()?.initData || fromHashOrSession();
