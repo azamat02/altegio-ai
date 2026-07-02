@@ -54,3 +54,9 @@ export function buildNavFooter(p: NavFooterParams): InlineKeyboardButton[][] {
   if (nav.length) rows.push(nav);
   return rows;
 }
+
+const NAV_RE = /^(report|staff):nav:(\d{4}-\d{2}-\d{2}):(\S+)$/;
+export function parseNavCallback(data: string): { kind: 'report' | 'staff'; date: string; tenantId: string } | null {
+  const m = NAV_RE.exec(data);
+  return m ? { kind: m[1] as 'report' | 'staff', date: m[2], tenantId: m[3] } : null;
+}
