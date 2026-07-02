@@ -1,3 +1,5 @@
+import type { RevenueDynamics } from './daily-report';
+
 export interface TrendPoint { date: string; revenue: number }
 
 export interface StaffTableRow {
@@ -23,4 +25,29 @@ export interface TmaSummary {
   utilizationPct: number | null;
   topStaff: { name: string; revenue: number; visits: number } | null;
   revenue30d: TrendPoint[];
+  dynamics: RevenueDynamics | null;
+}
+
+export interface StaffCompareRow extends StaffTableRow {
+  prevRevenue: number;
+  deltaPct: number | null; // null when prevRevenue === 0 («новый»)
+}
+export interface StaffCompareResponse {
+  rows: StaffCompareRow[];
+  totals: { revenue: number; prevRevenue: number; deltaPct: number | null };
+}
+export interface StaffServiceRow { title: string; visits: number; revenue: number }
+export interface StaffDetail {
+  staffId: number;
+  name: string;
+  revenue: number;
+  visits: number;
+  avgCheck: number;
+  utilizationPct: number | null;
+  newClients: number;
+  returningClients: number;
+  cancelled: number;
+  noShow: number;
+  services: StaffServiceRow[]; // top by revenue, max 10
+  trend: TrendPoint[];         // 30d
 }

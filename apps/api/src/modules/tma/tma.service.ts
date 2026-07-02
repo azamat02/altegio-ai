@@ -46,6 +46,7 @@ export class TmaService {
       utilizationPct: y.utilizationPct,
       topStaff: y.topStaff?.[0] ?? null,
       revenue30d,
+      dynamics: y.dynamics ?? null,
     };
   }
 
