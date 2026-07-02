@@ -38,8 +38,20 @@ jobs:
         run: pnpm -F @altegio/api test:int
       - run: pnpm -F @altegio/api build
 
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20', cache: 'pnpm' }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm -F @altegio/shared build
+      - run: pnpm -F @altegio/tma test
+      - run: pnpm -F @altegio/tma build
+
   publish-image:
-    needs: lint-test-build
+    needs: [lint-test-build, frontend]
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions: { contents: read, packages: write }
@@ -56,3 +68,23 @@ jobs:
           file: apps/api/Dockerfile
           push: true
           tags: ghcr.io/${{ github.repository_owner }}/altegio-ai-api:latest
+
+  deploy:
+    needs: [publish-image]
+    # Enable by setting repo variable DEPLOY_ENABLED=true and secrets VPS_HOST / VPS_USER / VPS_SSH_KEY.
+    if: ${{ github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    concurrency:
+      group: vps-deploy
+      cancel-in-progress: false
+    steps:
+      - name: Deploy to VPS over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script_stop: true
+          script: |
+            cd /opt/altegio-ai
+            ./deploy/deploy.sh
