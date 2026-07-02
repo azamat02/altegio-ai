@@ -11,8 +11,8 @@ export function validateInitData(
   params.delete('hash');
 
   const dataCheck = [...params.entries()]
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
     .map(([k, v]) => `${k}=${v}`)
-    .sort()
     .join('\n');
   const secret = crypto.createHmac('sha256', 'WebAppData').update(botToken).digest();
   const computed = crypto.createHmac('sha256', secret).update(dataCheck).digest('hex');
