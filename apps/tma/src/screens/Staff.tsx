@@ -33,6 +33,17 @@ export function StaffList({ rows, trends, onOpen }: {
   );
 }
 
+export function StaffTotalsLine({ totals }: { totals: StaffCompareResponse['totals'] }) {
+  return (
+    <div className="card">
+      <div className="row">
+        <span className="muted small">Салон: {tg(totals.revenue)}</span>
+        <DeltaBadge deltaPct={totals.deltaPct} />
+      </div>
+    </div>
+  );
+}
+
 export function Staff() {
   const [period, setPeriod] = useState<PeriodKind>('30d');
   const [rows, setRows] = useState<StaffCompareRow[]>([]);
@@ -53,14 +64,7 @@ export function Staff() {
     <div className="stack">
       <h1 className="serif">Мастера</h1>
       <PeriodSelector value={period} onChange={setPeriod} />
-      {totals !== null && (
-        <div className="card">
-          <div className="row">
-            <span className="muted small">Салон: {tg(totals.revenue)}</span>
-            <DeltaBadge deltaPct={totals.deltaPct} />
-          </div>
-        </div>
-      )}
+      {totals !== null && <StaffTotalsLine totals={totals} />}
       <StaffList rows={rows} trends={trends} onOpen={open} />
     </div>
   );
