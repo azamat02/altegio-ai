@@ -1,4 +1,4 @@
-import { previousWindow } from './period';
+import { previousWindow, inclusiveDays } from './period';
 
 describe('previousWindow', () => {
   it('returns the adjacent window of equal inclusive length', () => {
@@ -11,5 +11,12 @@ describe('previousWindow', () => {
   it('crosses month boundaries', () => {
     // 2026-07-01..2026-07-03 (3 days) → 2026-06-28..2026-06-30
     expect(previousWindow('2026-07-01', '2026-07-03')).toEqual({ from: '2026-06-28', to: '2026-06-30' });
+  });
+});
+
+describe('inclusiveDays', () => {
+  it('counts both endpoints', () => {
+    expect(inclusiveDays('2026-06-01', '2026-06-30')).toBe(30);
+    expect(inclusiveDays('2026-07-01', '2026-07-01')).toBe(1);
   });
 });

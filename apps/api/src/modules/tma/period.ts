@@ -11,3 +11,8 @@ export function previousWindow(from: string, to: string): { from: string; to: st
   const prevTo = shift(from, -1);
   return { from: shift(prevTo, -lenMinus1), to: prevTo };
 }
+
+/** Number of calendar days in [from, to], inclusive on both ends. */
+export function inclusiveDays(from: string, to: string): number {
+  return (Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000 + 1;
+}
