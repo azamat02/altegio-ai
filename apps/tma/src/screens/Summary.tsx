@@ -2,6 +2,7 @@ import type { TmaSummary } from '@altegio/shared';
 import { tg, pct } from '../format';
 import { RevenueChart } from '../components/RevenueChart';
 import { KPI } from '../components/KPI';
+import { DeltaBadge } from '../components/DeltaBadge';
 
 export function Summary({ summary: s }: { summary: TmaSummary }) {
   const deltaPositive = s.deltaPct != null && s.deltaPct >= 0;
@@ -26,6 +27,12 @@ export function Summary({ summary: s }: { summary: TmaSummary }) {
           )}
         </div>
         <div className="hero num revenue-value">{tg(s.revenue)}</div>
+        {s.dynamics && (
+          <div className="row" style={{ gap: 8 }}>
+            <span className="muted small">Неделя <DeltaBadge deltaPct={s.dynamics.week.deltaPct} /></span>
+            <span className="muted small">Месяц <DeltaBadge deltaPct={s.dynamics.month.deltaPct} /></span>
+          </div>
+        )}
         <RevenueChart points={s.revenue30d} />
       </div>
 

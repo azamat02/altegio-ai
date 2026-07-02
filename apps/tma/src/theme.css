@@ -164,6 +164,23 @@ body {
 .up   { color: var(--up);   background: var(--up-bg);   }
 .down { color: var(--down); background: var(--down-bg); }
 
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 7px;
+  border-radius: 6px;
+  letter-spacing: 0.01em;
+}
+
+.badge.muted {
+  color: var(--text-muted);
+  background: var(--bg-card-alt);
+  font-size: 11px;
+}
+
 /* ── Header ───────────────────────────────────────────────── */
 
 .dashboard-header {
