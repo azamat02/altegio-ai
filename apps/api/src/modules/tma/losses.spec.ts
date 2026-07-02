@@ -32,4 +32,11 @@ describe('composeLosses', () => {
   it('projects a 1-day period ×365', () => {
     expect(composeLosses(base, 1).cancellations.annual).toBe(300_000 * 365);
   });
+
+  it('computes idle money from exact fractional hours (display hours rounded)', () => {
+    // capacity−booked = 90 min = 1.5h; revenuePerHour = 3_000_000/100h = 30_000
+    const l = composeLosses({ ...base, capacityMin: 6_090 }, 30);
+    expect(l.idle.idleHours).toBe(2);            // display rounds 1.5 → 2
+    expect(l.idle.period).toBe(45_000);          // money uses exact 1.5 × 30_000
+  });
 });

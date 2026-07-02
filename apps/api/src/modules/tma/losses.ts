@@ -19,9 +19,10 @@ export function composeLosses(i: LossIngredients, periodDays: number): TmaLosses
   let idleHours = 0;
   let idlePeriod = 0;
   if (i.bookedMin > 0 && i.capacityMin > 0) {
-    idleHours = Math.round(Math.max(0, i.capacityMin - i.bookedMin) / 60);
+    const exactIdleHours = Math.max(0, i.capacityMin - i.bookedMin) / 60;
+    idleHours = Math.round(exactIdleHours);
     const revenuePerHour = i.revenue / (i.bookedMin / 60);
-    idlePeriod = idleHours * revenuePerHour;
+    idlePeriod = exactIdleHours * revenuePerHour;
   }
   const idle = { idleHours, ...block(idlePeriod) };
 
