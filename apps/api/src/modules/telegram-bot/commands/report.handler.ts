@@ -22,9 +22,7 @@ export function registerReport(
   });
 
   bot.hears('📊 Отчёт', async (ctx) => {
-    const chatId = ctx.state.chatId;
-    await deps.logs.log({ chatId, tenantId: null, command: '/report', args: { via: 'button' } });
-    await handleReportCommand(ctx as unknown as BotContext, deps, undefined);
+    await handleReportCommand(ctx as unknown as BotContext, deps, undefined, { via: 'button' });
   });
 
   // Nav action MUST be registered BEFORE picker to avoid overlap
@@ -50,9 +48,14 @@ export function registerReport(
   });
 }
 
-async function handleReportCommand(ctx: BotContext, deps: Deps, arg?: string): Promise<void> {
+async function handleReportCommand(
+  ctx: BotContext,
+  deps: Deps,
+  arg?: string,
+  logArgs?: Record<string, unknown>,
+): Promise<void> {
   const chatId = ctx.state.chatId;
-  await deps.logs.log({ chatId, tenantId: null, command: '/report', args: { arg: arg ?? null } });
+  await deps.logs.log({ chatId, tenantId: null, command: '/report', args: logArgs ?? { arg: arg ?? null } });
 
   if (ctx.state.tenants.length > 1) {
     const options = await Promise.all(
