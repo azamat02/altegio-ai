@@ -10,3 +10,16 @@ describe('format', () => {
     expect(pct(null)).toBe('—');
   });
 });
+
+import { initDataFromHash } from './telegram';
+
+describe('initDataFromHash', () => {
+  it('extracts and decodes tgWebAppData from the launch hash', () => {
+    const raw = 'auth_date%3D1%26user%3D%257B%2522id%2522%253A42%257D%26hash%3Dabc';
+    expect(initDataFromHash(`#tgWebAppData=${raw}&tgWebAppVersion=7.0`)).toBe(decodeURIComponent(raw));
+  });
+  it('returns empty string when absent', () => {
+    expect(initDataFromHash('#tgWebAppVersion=7.0')).toBe('');
+    expect(initDataFromHash('')).toBe('');
+  });
+});

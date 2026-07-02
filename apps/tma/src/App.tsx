@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import './theme.css';
 import type { TmaSummary } from '@altegio/shared';
-import { initTelegram, getTheme, getInitData } from './telegram';
+import { initTelegram, getTheme, getInitData, tgDebugInfo } from './telegram';
 import { api } from './api';
 import { Summary } from './screens/Summary';
 import { Staff } from './screens/Staff';
@@ -30,8 +30,9 @@ export default function App() {
         <div className="state-screen">
           <p className="muted">
             Этот клиент Telegram не передал данные авторизации.
-            Откройте дашборд через Telegram на телефоне (iOS/Android).
+            Попробуйте закрыть и открыть дашборд заново.
           </p>
+          <p className="muted" style={{ fontSize: 11, opacity: 0.6 }}>{tgDebugInfo()}</p>
         </div>
       </div>
     );
