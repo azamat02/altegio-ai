@@ -3,7 +3,7 @@ import { escapeHtml } from '../../common/html';
 
 // ── Money formatter ──────────────────────────────────────────────────────────
 // Uses Russian thin-space grouping (U+202F narrow no-break space via ru-RU
-// locale) and ₸ suffix with a non-breaking space before it.
+// locale) and ₸ suffix with a non-breaking space before it.
 function fmtMoney(n: number): string {
   const formatted = new Intl.NumberFormat('ru-RU').format(Math.round(n));
   return `${formatted} ₸`;
