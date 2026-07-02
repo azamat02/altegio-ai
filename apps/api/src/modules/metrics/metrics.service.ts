@@ -806,6 +806,50 @@ export class MetricsService {
   }
 
   // ---------------------------------------------------------------------------
+  // Task 3 (TMA v2b) — clientsAnalytics: sleeping list, LTV top, counters
+  // ---------------------------------------------------------------------------
+
+  async clientsAnalytics(tenantId: string, today: string, sleepingCutoff: string, almostLostCutoff: string) {
+    const [counts] = await this.ds.query(
+      `SELECT COUNT(*) FILTER (WHERE visits_count >= 1)::int AS total,
+              COUNT(*) FILTER (WHERE visits_count >= 1 AND last_visit_date IS NOT NULL AND last_visit_date < $2)::int AS sleeping,
+              COUNT(*) FILTER (WHERE visits_count >= 1 AND last_visit_date IS NOT NULL AND last_visit_date < $3)::int AS almost_lost
+       FROM clients WHERE tenant_id = $1`,
+      [tenantId, sleepingCutoff, almostLostCutoff],
+    );
+    const sleeping = await this.ds.query(
+      `SELECT name, phone, ($2::date - last_visit_date)::int AS days_since,
+              COALESCE(visits_count, 0)::int AS visits, COALESCE(spent, 0)::numeric AS spent
+       FROM clients
+       WHERE tenant_id = $1 AND visits_count >= 1
+         AND last_visit_date IS NOT NULL AND last_visit_date < $3
+       ORDER BY spent DESC NULLS LAST
+       LIMIT 30`,
+      [tenantId, today, sleepingCutoff],
+    );
+    const top = await this.ds.query(
+      `SELECT name, phone, COALESCE(visits_count, 0)::int AS visits, COALESCE(spent, 0)::numeric AS spent
+       FROM clients
+       WHERE tenant_id = $1 AND visits_count >= 1
+       ORDER BY spent DESC NULLS LAST
+       LIMIT 10`,
+      [tenantId],
+    );
+    return {
+      totalClients: Number(counts.total),
+      sleepingCount: Number(counts.sleeping),
+      almostLostCount: Number(counts.almost_lost),
+      sleeping: sleeping.map((r: any) => ({
+        name: r.name, phone: r.phone, daysSince: Number(r.days_since),
+        visits: Number(r.visits), spent: Math.round(Number(r.spent)),
+      })),
+      top: top.map((r: any) => ({
+        name: r.name, phone: r.phone, visits: Number(r.visits), spent: Math.round(Number(r.spent)),
+      })),
+    };
+  }
+
+  // ---------------------------------------------------------------------------
   // Utilities
   // ---------------------------------------------------------------------------
 

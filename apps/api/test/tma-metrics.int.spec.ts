@@ -205,3 +205,39 @@ describe('MetricsService.lossesData (int)', () => {
     });
   });
 });
+
+describe('MetricsService.clientsAnalytics (int)', () => {
+  let db: TestDb; let svc: MetricsService; let tenantId: string;
+
+  beforeAll(async () => {
+    db = await startTestDb();
+    const tenants = new TenantsService(
+      db.ds.getRepository(TenantEntity),
+      new TokenCipher(process.env.APP_ENCRYPTION_KEY!),
+    );
+    svc = new MetricsService(db.ds, tenants);
+    const t = await tenants.create({ salonName: 'C', locationId: 12, altegioToken: 'x', timezone: 'UTC' });
+    tenantId = t.id;
+    await db.ds.query(
+      `INSERT INTO clients (tenant_id, altegio_client_id, name, phone, visits_count, last_visit_date, spent) VALUES
+       ($1, 1, 'ВИП спящая', '+7700', 20, '2026-03-01', 900000),
+       ($1, 2, 'Спящая мал.', '+7701', 2, '2026-04-20', 50000),
+       ($1, 3, 'Активная', '+7702', 8, '2026-06-30', 400000),
+       ($1, 4, 'Без даты', NULL, 1, NULL, 10000),
+       ($1, 5, 'Ноль визитов', '+7704', 0, NULL, 0)`, [tenantId]);
+  }, 60000);
+  afterAll(async () => { await db.stop(); });
+
+  it('splits sleeping / almost-lost / totals with ordering and null handling', async () => {
+    // today=2026-07-03, sleeping cutoff = today−60 = 2026-05-04, almost-lost = today−90 = 2026-04-04
+    const c = await svc.clientsAnalytics(tenantId, '2026-07-03', '2026-05-04', '2026-04-04');
+    expect(c.totalClients).toBe(4);        // visits_count >= 1
+    expect(c.sleepingCount).toBe(2);       // ВИП (03-01) + мал. (04-20); NULL excluded
+    expect(c.almostLostCount).toBe(1);     // only ВИП (03-01 < 04-04)
+    expect(c.sleeping.map((s: any) => s.name)).toEqual(['ВИП спящая', 'Спящая мал.']); // spent DESC
+    expect(c.sleeping[0]).toMatchObject({ phone: '+7700', visits: 20, spent: 900000 });
+    expect(c.sleeping[0].daysSince).toBe(124); // 2026-03-01 → 2026-07-03
+    expect(c.top[0].name).toBe('ВИП спящая'); // top by spent incl. active
+    expect(c.top.map((top: any) => top.name)).toContain('Активная');
+  });
+});
