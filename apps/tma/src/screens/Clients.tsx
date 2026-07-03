@@ -44,8 +44,13 @@ export function Clients() {
   const [data, setData] = useState<TmaClients | null>(null);
   const [failed, setFailed] = useState(false);
   useEffect(() => {
+    let stale = false;
+    setData(null);
     setFailed(false);
-    api.get<TmaClients>(`/tma/clients?sleepingDays=${days}`).then(setData).catch(() => setFailed(true));
+    api.get<TmaClients>(`/tma/clients?sleepingDays=${days}`)
+      .then((d) => { if (!stale) setData(d); })
+      .catch(() => { if (!stale) setFailed(true); });
+    return () => { stale = true; };
   }, [days]);
   return (
     <div className="stack">

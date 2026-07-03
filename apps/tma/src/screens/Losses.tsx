@@ -36,8 +36,13 @@ export function Losses() {
   const [failed, setFailed] = useState(false);
   useEffect(() => {
     const { from, to } = range(period);
+    let stale = false;
+    setData(null);
     setFailed(false);
-    api.get<TmaLosses>(`/tma/losses?from=${from}&to=${to}`).then(setData).catch(() => setFailed(true));
+    api.get<TmaLosses>(`/tma/losses?from=${from}&to=${to}`)
+      .then((d) => { if (!stale) setData(d); })
+      .catch(() => { if (!stale) setFailed(true); });
+    return () => { stale = true; };
   }, [period]);
   return (
     <div className="stack">

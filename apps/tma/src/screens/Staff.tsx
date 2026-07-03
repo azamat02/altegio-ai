@@ -50,9 +50,13 @@ export function Staff() {
 
   useEffect(() => {
     const { from, to } = range(period);
+    let stale = false;
+    setRows([]);
+    setTotals(null);
     api.get<StaffCompareResponse>(`/tma/staff?from=${from}&to=${to}&compare=1`)
-      .then((r) => { setRows(r.rows); setTotals(r.totals); })
-      .catch(() => { setRows([]); setTotals(null); });
+      .then((r) => { if (!stale) { setRows(r.rows); setTotals(r.totals); } })
+      .catch(() => { if (!stale) { setRows([]); setTotals(null); } });
+    return () => { stale = true; };
   }, [period]);
 
   if (detailId !== null) {

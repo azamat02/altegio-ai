@@ -23,7 +23,11 @@ export default function App() {
       setError('NO_INITDATA');
       return;
     }
-    api.get<TmaSummary>('/tma/summary').then(setSummary).catch((e: Error) => setError(e.message));
+    let stale = false;
+    api.get<TmaSummary>('/tma/summary')
+      .then((s) => { if (!stale) setSummary(s); })
+      .catch((e: Error) => { if (!stale) setError(e.message); });
+    return () => { stale = true; };
   }, []);
 
   if (error === 'NO_INITDATA') {

@@ -44,8 +44,13 @@ export function StaffDetailScreen({ staffId, period, onBack }: {
 
   useEffect(() => {
     const { from, to } = range(period);
+    let stale = false;
+    setDetail(null);
+    setFailed(false);
     api.get<StaffDetail>(`/tma/staff/${staffId}/detail?from=${from}&to=${to}`)
-      .then(setDetail).catch(() => setFailed(true));
+      .then((d) => { if (!stale) setDetail(d); })
+      .catch(() => { if (!stale) setFailed(true); });
+    return () => { stale = true; };
   }, [staffId, period]);
 
   useEffect(() => {
