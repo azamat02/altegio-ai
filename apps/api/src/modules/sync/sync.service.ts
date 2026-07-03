@@ -84,7 +84,11 @@ export class SyncService {
       }
 
       // 3) Clients — full sweep via the search endpoint (the only source of
-      // visits_count / last_visit_date / sold_amount)
+      // visits_count / last_visit_date / sold_amount). Intentionally not a delta:
+      // visit counters change without a record-delta signal, so every sync repages
+      // everything (~140 pages / ~50s for 27.9k clients at the shared 3 rps limiter).
+      // No transaction on purpose: a mid-sweep failure leaves earlier pages committed,
+      // and the keyed upsert self-heals on the next run.
       for await (const batch of this.cliEp.fetchAll(auth)) {
         await this.rawWriter.writeClients(tenantId, batch);
         await this.upsertClients(tenantId, batch.map((c) => this.cliParser.toRow(tenantId, c)));
