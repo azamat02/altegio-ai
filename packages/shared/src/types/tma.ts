@@ -57,7 +57,7 @@ export interface TmaLosses {
   periodDays: number;
   cancellations: LossBlock & { count: number };
   noShow: LossBlock & { count: number };
-  idle: LossBlock & { idleHours: number };
+  idle: LossBlock & { idleHours: number; targetUtilizationPct: number };
   churn: LossBlock & { sleepingCount: number; returnRatePct: number };
   totalAnnual: number;
 }

@@ -4,6 +4,7 @@ import { linkTelegramCommand } from './commands/link-telegram';
 import { triggerSyncCommand } from './commands/trigger-sync';
 import { triggerReportCommand } from './commands/trigger-report';
 import { setMonthlyGoalCommand } from './commands/set-monthly-goal';
+import { setTargetUtilizationCommand } from './commands/set-target-utilization';
 
 const program = new Command('altegio-cli')
   .description('Altegio AI admin CLI');
@@ -13,6 +14,7 @@ program.addCommand(linkTelegramCommand());
 program.addCommand(triggerSyncCommand());
 program.addCommand(triggerReportCommand());
 program.addCommand(setMonthlyGoalCommand());
+program.addCommand(setTargetUtilizationCommand());
 
 // pnpm passes a literal "--" as the first extra arg when using `pnpm cli -- <cmd>`.
 // Strip it so Commander can correctly parse the subcommand.

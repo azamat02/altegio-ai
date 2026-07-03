@@ -23,7 +23,7 @@ export function LossesView({ data: d }: { data: TmaLosses }) {
       </div>
       <LossCard title="Отмены" context={`${d.cancellations.count} отмен за период`} period={d.cancellations.period} annual={d.cancellations.annual} />
       <LossCard title="Не пришли" context={`${d.noShow.count} no-show за период`} period={d.noShow.period} annual={d.noShow.annual} />
-      <LossCard title="Простой" context={`${d.idle.idleHours} свободных часов`} period={d.idle.period} annual={d.idle.annual} />
+      <LossCard title="Простой" context={`${d.idle.idleHours} свободных часов до загрузки ${d.idle.targetUtilizationPct}%`} period={d.idle.period} annual={d.idle.annual} />
       <LossCard title="Отток" context={`${d.churn.sleepingCount} спящих клиентов · при возврате ${d.churn.returnRatePct}%`} period={d.churn.period} annual={d.churn.annual} />
       <p className="muted small">Оценка по данным выбранного периода, не бухгалтерия.</p>
     </div>

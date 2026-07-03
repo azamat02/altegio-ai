@@ -136,6 +136,7 @@ describe('TMA endpoints (int)', () => {
       expect(res.body[k]).toMatchObject({ period: expect.any(Number), annual: expect.any(Number) });
     }
     expect(res.body.churn.returnRatePct).toBe(30);
+    expect(res.body.idle.targetUtilizationPct).toBe(80);
     expect(typeof res.body.totalAnnual).toBe('number');
   });
 

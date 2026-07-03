@@ -66,4 +66,8 @@ export class TenantsService {
   async setMonthlyGoal(tenantId: string, amount: number | null): Promise<void> {
     await this.repo.update({ id: tenantId }, { monthlyGoal: amount });
   }
+
+  async setTargetUtilization(tenantId: string, pct: number): Promise<void> {
+    await this.repo.update({ id: tenantId }, { targetUtilizationPct: pct });
+  }
 }

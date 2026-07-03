@@ -3,7 +3,7 @@ import { MetricsService } from '../metrics/metrics.service';
 import { TenantsService } from '../tenants/tenants.service';
 import type { TmaSummary, StaffTableRow, TrendPoint, StaffCompareResponse, StaffDetail, TmaLosses, TmaClients } from '@altegio/shared';
 import { previousWindow, inclusiveDays } from './period';
-import { composeLosses, type LossIngredients } from './losses';
+import { composeLosses, DEFAULT_TARGET_UTILIZATION_PCT, type LossIngredients } from './losses';
 
 @Injectable()
 export class TmaService {
@@ -91,10 +91,11 @@ export class TmaService {
   }
 
   async losses(tenantId: string, from: string, to: string): Promise<TmaLosses> {
-    const tz = await this.tz(tenantId);
-    const sleepingCutoff = this.subtractDays(this.todayInTz(tz), 60);
-    const ingredients: LossIngredients = await this.metrics.lossesData(tenantId, from, to, tz, sleepingCutoff);
-    return composeLosses(ingredients, inclusiveDays(from, to));
+    const t = await this.tenants.findById(tenantId);
+    if (!t) throw new Error(`Tenant ${tenantId} not found`);
+    const sleepingCutoff = this.subtractDays(this.todayInTz(t.timezone), 60);
+    const ingredients: LossIngredients = await this.metrics.lossesData(tenantId, from, to, t.timezone, sleepingCutoff);
+    return composeLosses(ingredients, inclusiveDays(from, to), t.targetUtilizationPct ?? DEFAULT_TARGET_UTILIZATION_PCT);
   }
 
   async clients(tenantId: string, sleepingDays: 30 | 60 | 90): Promise<TmaClients> {

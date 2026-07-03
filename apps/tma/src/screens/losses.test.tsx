@@ -8,7 +8,7 @@ const data: TmaLosses = {
   periodDays: 30,
   cancellations: { count: 10, period: 300000, annual: 3650000 },
   noShow: { count: 5, period: 120000, annual: 1460000 },
-  idle: { idleHours: 100, period: 3000000, annual: 36500000 },
+  idle: { idleHours: 100, targetUtilizationPct: 80, period: 3000000, annual: 36500000 },
   churn: { sleepingCount: 40, returnRatePct: 30, period: 360000, annual: 4380000 },
   totalAnnual: 45990000,
 };
@@ -22,6 +22,7 @@ describe('LossesView', () => {
     expect(html).toContain('Простой');
     expect(html).toContain('Отток');
     expect(html).toContain('30%');
+    expect(html).toContain('до загрузки 80%');
     expect(html).toContain('не бухгалтерия');
   });
 });

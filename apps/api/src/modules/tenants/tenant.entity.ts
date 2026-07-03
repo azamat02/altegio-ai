@@ -35,6 +35,9 @@ export class TenantEntity {
   @Column({ type: 'bigint', name: 'monthly_goal', nullable: true })
   monthlyGoal!: number | null;
 
+  @Column({ type: 'int', name: 'target_utilization_pct', default: 80 })
+  targetUtilizationPct!: number;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
 
