@@ -13,13 +13,6 @@ const PAGE_SIZE = 200;
 export class ClientsEndpoint {
   constructor(private readonly client: AltegioClient) {}
 
-  /** @deprecated list endpoint returns no visit fields; removed once sync switches to fetchAll */
-  async fetchPage(auth: AltegioAuthContext, page = 1, count = 200): Promise<AltegioClientDto[]> {
-    type Resp = { success: boolean; data: AltegioClientDto[] };
-    const res = await this.client.get<Resp>(auth, `/clients/${auth.locationId}`, { page, count });
-    return res.data ?? [];
-  }
-
   async searchPage(
     auth: AltegioAuthContext,
     page = 1,

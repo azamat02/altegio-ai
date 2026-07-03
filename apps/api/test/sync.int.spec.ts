@@ -42,11 +42,11 @@ describe('SyncService integration', () => {
     const recFix = JSON.parse(readFileSync(join(__dirname, 'fixtures/altegio/records-sample.json'), 'utf8'));
     const stfFix = JSON.parse(readFileSync(join(__dirname, 'fixtures/altegio/staff-sample.json'), 'utf8'));
     const svcFix = JSON.parse(readFileSync(join(__dirname, 'fixtures/altegio/services-sample.json'), 'utf8'));
-    const cliFix = JSON.parse(readFileSync(join(__dirname, 'fixtures/altegio/clients-sample.json'), 'utf8'));
+    const cliFix = JSON.parse(readFileSync(join(__dirname, 'fixtures/altegio/clients-search-sample.json'), 'utf8'));
     const ttFix  = JSON.parse(readFileSync(join(__dirname, 'fixtures/altegio/timetable-sample.json'), 'utf8'));
 
     const recEp = { fetchAll: async function* () { yield recFix; } } as any;
-    const cliEp = { fetchPage: async () => cliFix } as any;
+    const cliEp = { fetchAll: async function* () { yield cliFix; } } as any;
     const stfEp = { fetchAll: async () => stfFix } as any;
     const svcEp = { fetchAll: async () => svcFix } as any;
     const resEp = {} as any; // ResourcesEndpoint kept in DI but no longer called
@@ -106,5 +106,24 @@ describe('SyncService integration', () => {
       [t.id],
     );
     expect(Number(schedCount[0].count)).toBeGreaterThan(0);
+  });
+
+  it('persists visit fields from the clients search sweep', async () => {
+    const t = await tenants.create({ salonName: 'ClientsSweep', locationId: 199003, altegioToken: 'y', timezone: 'Asia/Almaty' });
+    await svc.syncTenant(t.id);
+
+    const rows = await db.ds.query(
+      `SELECT altegio_client_id, visits_count, last_visit_date::text AS lvd, spent
+       FROM clients WHERE tenant_id = $1 ORDER BY altegio_client_id`,
+      [t.id],
+    );
+    expect(rows.length).toBe(3);
+    const zarina = rows.find((r: any) => Number(r.altegio_client_id) === 31396661);
+    expect(zarina.visits_count).toBe(648);
+    expect(zarina.lvd).toBe('2026-06-13');
+    expect(Number(zarina.spent)).toBeCloseTo(15636614.02);
+    const noVisits = rows.find((r: any) => Number(r.altegio_client_id) === 31392404);
+    expect(noVisits.visits_count).toBe(0);
+    expect(noVisits.lvd).toBeNull();
   });
 });

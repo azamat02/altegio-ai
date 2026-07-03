@@ -83,10 +83,12 @@ export class SyncService {
         total += batch.length;
       }
 
-      // 3) Clients delta (page 1 only for Phase 1)
-      const cliBatch = await this.cliEp.fetchPage(auth, 1, 200);
-      await this.rawWriter.writeClients(tenantId, cliBatch);
-      await this.upsertClients(tenantId, cliBatch.map((c) => this.cliParser.toRow(tenantId, c)));
+      // 3) Clients — full sweep via the search endpoint (the only source of
+      // visits_count / last_visit_date / sold_amount)
+      for await (const batch of this.cliEp.fetchAll(auth)) {
+        await this.rawWriter.writeClients(tenantId, batch);
+        await this.upsertClients(tenantId, batch.map((c) => this.cliParser.toRow(tenantId, c)));
+      }
 
       // 4) Service categories
       const categories = await this.svcCatEp.fetchAll(auth);
@@ -211,18 +213,26 @@ export class SyncService {
 
   private async upsertClients(tenantId: string, rows: ClientRow[]): Promise<void> {
     if (rows.length === 0) return;
-    for (const r of rows) {
-      await this.ds.query(
-        `
-        INSERT INTO clients (tenant_id, altegio_client_id, name, phone, visits_count, last_visit_date, spent)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
-        ON CONFLICT (tenant_id, altegio_client_id) DO UPDATE SET
-          name = EXCLUDED.name, phone = EXCLUDED.phone,
-          visits_count = EXCLUDED.visits_count, last_visit_date = EXCLUDED.last_visit_date,
-          spent = EXCLUDED.spent, updated_at = now()
-        `,
-        [tenantId, r.altegioClientId, r.name, r.phone, r.visitsCount, r.lastVisitDate, r.spent],
-      );
-    }
+    const COLS = 7;
+    const values = rows
+      .map((_, i) => {
+        const base = i * COLS;
+        return `(${Array.from({ length: COLS }, (__, j) => `$${base + j + 1}`).join(', ')})`;
+      })
+      .join(', ');
+    const params = rows.flatMap((r) => [
+      tenantId, r.altegioClientId, r.name, r.phone, r.visitsCount, r.lastVisitDate, r.spent,
+    ]);
+    await this.ds.query(
+      `
+      INSERT INTO clients (tenant_id, altegio_client_id, name, phone, visits_count, last_visit_date, spent)
+      VALUES ${values}
+      ON CONFLICT (tenant_id, altegio_client_id) DO UPDATE SET
+        name = EXCLUDED.name, phone = EXCLUDED.phone,
+        visits_count = EXCLUDED.visits_count, last_visit_date = EXCLUDED.last_visit_date,
+        spent = EXCLUDED.spent, updated_at = now()
+      `,
+      params,
+    );
   }
 }

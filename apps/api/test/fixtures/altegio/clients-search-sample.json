@@ -1,0 +1,29 @@
+[
+  {
+    "id": 31396661,
+    "name": "Зарина",
+    "phone": "+77019859510",
+    "email": "",
+    "visits_count": 648,
+    "last_visit_date": "2026-06-13 12:00:00",
+    "sold_amount": 15636614.02
+  },
+  {
+    "id": 31392404,
+    "name": "Сабина",
+    "phone": "+72222222222",
+    "email": "",
+    "visits_count": 0,
+    "last_visit_date": "",
+    "sold_amount": 0
+  },
+  {
+    "id": 31392405,
+    "name": "Сабыргуль",
+    "phone": "+77017115066",
+    "email": "",
+    "visits_count": 12,
+    "last_visit_date": "2026-05-02 10:30:00",
+    "sold_amount": 264000
+  }
+]
