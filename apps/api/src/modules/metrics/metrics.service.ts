@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { TenantsService } from '../tenants/tenants.service';
-import { CategoryFill, DailyReportData, TopStaff, StaffTableRow, TrendPoint } from '@altegio/shared';
+import { CategoryFill, DailyReportData, TopStaff, StaffTableRow, TrendPoint, TmaClients } from '@altegio/shared';
 
 @Injectable()
 export class MetricsService {
@@ -12,7 +12,7 @@ export class MetricsService {
   ) {}
 
   // ---------------------------------------------------------------------------
-  // Task 17 — yesterdayUtilization (attendance = 1: completed visits only)
+  // yesterdayUtilization (attendance = 1: completed visits only)
   // ---------------------------------------------------------------------------
 
   async yesterdayUtilization(tenantId: string, date: string, tz: string): Promise<number | null> {
@@ -36,7 +36,7 @@ export class MetricsService {
   }
 
   // ---------------------------------------------------------------------------
-  // Task 20 (C3 fix) — todayUtilization (attendance IN (0,1): including scheduled)
+  // todayUtilization (attendance IN (0,1): including scheduled)
   // ---------------------------------------------------------------------------
 
   async todayUtilization(tenantId: string, date: string, tz: string): Promise<number | null> {
@@ -60,7 +60,7 @@ export class MetricsService {
   }
 
   // ---------------------------------------------------------------------------
-  // Task 18 — monthlyGoal (I6: 60-day history gate + NaN/Infinity guard)
+  // monthlyGoal (60-day history gate + NaN/Infinity guard)
   // ---------------------------------------------------------------------------
 
   async monthlyGoal(
@@ -147,7 +147,7 @@ export class MetricsService {
   }
 
   // ---------------------------------------------------------------------------
-  // Task 19 — todayCategoryFillRates (C2 fix: TZ-aware date filter)
+  // todayCategoryFillRates (TZ-aware date filter)
   // ---------------------------------------------------------------------------
 
   async todayCategoryFillRates(tenantId: string, date: string, tz: string): Promise<CategoryFill[]> {
@@ -198,7 +198,7 @@ export class MetricsService {
   }
 
   // ---------------------------------------------------------------------------
-  // Task 20 helpers — scheduledToday, yesterdayRevenue, avg7Revenue,
+  // Report helpers — scheduledToday, yesterdayRevenue, avg7Revenue,
   // yesterdayVisits, yesterdayTopStaff
   // ---------------------------------------------------------------------------
 
@@ -247,7 +247,7 @@ export class MetricsService {
     );
     if (rows.length === 0) return null;
     const total = rows.reduce((s: number, r: any) => s + Number(r.rev), 0);
-    // I7: divide by 7 (not rows.length) for a true 7-day average
+    // divide by 7 (not rows.length) for a true 7-day average
     return total / 7;
   }
 
@@ -293,7 +293,7 @@ export class MetricsService {
   }
 
   // ---------------------------------------------------------------------------
-  // Task 2 (TMA) — staffTable: per-staff aggregates over a date range
+  // staffTable: per-staff aggregates over a date range
   // ---------------------------------------------------------------------------
 
   async staffTable(tenantId: string, from: string, to: string, tz: string): Promise<StaffTableRow[]> {
@@ -359,7 +359,7 @@ export class MetricsService {
   }
 
   // ---------------------------------------------------------------------------
-  // Task 20 — buildDailyReportData
+  // buildDailyReportData
   // ---------------------------------------------------------------------------
 
   async buildDailyReportData(tenantId: string, reportDate: string): Promise<DailyReportData> {
@@ -632,7 +632,7 @@ export class MetricsService {
   }
 
   // ---------------------------------------------------------------------------
-  // Task 3 (TMA) — staffRevenueTrend + revenueSeries daily series
+  // staffRevenueTrend + revenueSeries daily series
   // ---------------------------------------------------------------------------
 
   private buildDateAxis(endDate: string, days: number): string[] {
@@ -677,7 +677,7 @@ export class MetricsService {
   }
 
   // ---------------------------------------------------------------------------
-  // Task 3 (TMA v2a) — staffDetail: per-master header, services, clients, cancels
+  // staffDetail: per-master header, services, clients, cancels
   // ---------------------------------------------------------------------------
 
   async staffDetail(tenantId: string, staffId: number, from: string, to: string, tz: string) {
@@ -761,7 +761,7 @@ export class MetricsService {
   }
 
   // ---------------------------------------------------------------------------
-  // Task 2 (TMA v2b) — lossesData: SQL ingredients for the losses screen
+  // lossesData: SQL ingredients for the losses screen
   // ---------------------------------------------------------------------------
 
   async lossesData(tenantId: string, from: string, to: string, tz: string, sleepingCutoff: string) {
@@ -806,10 +806,10 @@ export class MetricsService {
   }
 
   // ---------------------------------------------------------------------------
-  // Task 3 (TMA v2b) — clientsAnalytics: sleeping list, LTV top, counters
+  // clientsAnalytics: sleeping list, LTV top, counters
   // ---------------------------------------------------------------------------
 
-  async clientsAnalytics(tenantId: string, today: string, sleepingCutoff: string, almostLostCutoff: string) {
+  async clientsAnalytics(tenantId: string, today: string, sleepingCutoff: string, almostLostCutoff: string): Promise<TmaClients> {
     const [counts] = await this.ds.query(
       `SELECT COUNT(*) FILTER (WHERE visits_count >= 1)::int AS total,
               COUNT(*) FILTER (WHERE visits_count >= 1 AND last_visit_date IS NOT NULL AND last_visit_date < $2)::int AS sleeping,

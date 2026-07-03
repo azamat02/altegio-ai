@@ -238,6 +238,6 @@ describe('MetricsService.clientsAnalytics (int)', () => {
     expect(c.sleeping[0]).toMatchObject({ phone: '+7700', visits: 20, spent: 900000 });
     expect(c.sleeping[0].daysSince).toBe(124); // 2026-03-01 → 2026-07-03
     expect(c.top[0].name).toBe('ВИП спящая'); // top by spent incl. active
-    expect(c.top.map((top: any) => top.name)).toContain('Активная');
+    expect(c.top.map((t: any) => t.name)).toContain('Активная');
   });
 });

@@ -11,6 +11,9 @@ export function ClientsView({ data: d }: { data: TmaClients }) {
       <div className="grid3">
         <div className="card tight"><div className="muted small">Всего</div><div className="num">{d.totalClients}</div></div>
         <div className="card tight"><div className="muted small">Спящих</div><div className="num">{d.sleepingCount}</div></div>
+        {/* Design note: the «90+ дней» counter is intentionally fixed at the 90-day
+            cutoff regardless of the sleeping-threshold pill — it answers "how many are
+            almost lost", not "how many match the current filter". */}
         <div className="card tight"><div className="muted small">90+ дней</div><div className="num">{d.almostLostCount}</div></div>
       </div>
       <div className="card">
