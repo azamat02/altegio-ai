@@ -35,8 +35,9 @@ export default function App() {
       <div className="app">
         <div className="state-screen">
           <p className="muted">
-            Этот клиент Telegram не передал данные авторизации.
-            Попробуйте закрыть и открыть дашборд заново.
+            Telegram не передал данные авторизации.
+            Откройте дашборд через кнопку «Дашборд» рядом с полем ввода
+            или кнопку под отчётом.
           </p>
           <p className="muted" style={{ fontSize: 11, opacity: 0.6 }}>{tgDebugInfo()}</p>
         </div>

@@ -1,8 +1,12 @@
 import type { InlineKeyboardButton, KeyboardButton, ReplyKeyboardMarkup } from 'telegraf/typings/core/types/typegram';
 
 export function buildMainReplyKeyboard(tmaUrl?: string): ReplyKeyboardMarkup {
+  // Plain text, NOT web_app: reply-keyboard web_app buttons are
+  // keyboardButtonSimpleWebView — Telegram passes no initData to them by
+  // design, so the TMA can't authenticate. The hears-handler answers with an
+  // inline web_app button instead (inline buttons do carry initData).
   const row2: KeyboardButton[] = tmaUrl
-    ? [{ text: '📱 Дашборд', web_app: { url: tmaUrl } }, { text: '⚙️ Ещё' }]
+    ? [{ text: '📱 Дашборд' }, { text: '⚙️ Ещё' }]
     : [{ text: '⚙️ Ещё' }];
   return {
     keyboard: [[{ text: '📊 Отчёт' }, { text: '👥 Мастера' }], row2],

@@ -16,7 +16,7 @@ const data: TmaLosses = {
 describe('LossesView', () => {
   it('renders the hero total, four blocks, the 30% assumption and the disclaimer', () => {
     const html = renderToString(<LossesView data={data} />);
-    expect(html).toContain('45 990 000');
+    expect(html).toContain('46 млн ₸ в год');
     expect(html).toContain('Отмены');
     expect(html).toContain('Не пришли');
     expect(html).toContain('Простой');

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { TmaLosses } from '@altegio/shared';
 import { api } from '../api';
-import { tg } from '../format';
+import { tg, tgShort } from '../format';
 import { PeriodSelector, range, type PeriodKind } from '../components/PeriodSelector';
 
 function LossCard({ title, context, period, annual }: { title: string; context: string; period: number; annual: number }) {
@@ -9,7 +9,7 @@ function LossCard({ title, context, period, annual }: { title: string; context: 
     <div className="card">
       <div className="row"><strong>{title}</strong><span className="num">{tg(period)}</span></div>
       <div className="muted small">{context}</div>
-      <div className="muted small">{`≈ ${tg(annual)} в год`}</div>
+      <div className="muted small">{`≈ ${tgShort(annual)} в год`}</div>
     </div>
   );
 }
@@ -19,7 +19,7 @@ export function LossesView({ data: d }: { data: TmaLosses }) {
     <div className="stack">
       <div className="card card--hero">
         <div className="muted">Вы теряете примерно</div>
-        <div className="hero num">{`${tg(d.totalAnnual)} в год`}</div>
+        <div className="hero num">{`${tgShort(d.totalAnnual)} в год`}</div>
       </div>
       <LossCard title="Отмены" context={`${d.cancellations.count} отмен за период`} period={d.cancellations.period} annual={d.cancellations.annual} />
       <LossCard title="Не пришли" context={`${d.noShow.count} no-show за период`} period={d.noShow.period} annual={d.noShow.annual} />

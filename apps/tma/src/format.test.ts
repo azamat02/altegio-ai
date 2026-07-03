@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { tg, pct } from './format';
+import { tg, tgShort, pct } from './format';
 
 describe('format', () => {
   it('groups thousands', () => {
@@ -8,6 +8,23 @@ describe('format', () => {
   it('signs percent', () => {
     expect(pct(18)).toBe('+18%');
     expect(pct(null)).toBe('—');
+  });
+});
+
+describe('tgShort', () => {
+  it('abbreviates billions with two decimals, comma separator', () => {
+    expect(tgShort(1_848_235_000)).toBe('1,85 млрд ₸');
+  });
+  it('drops trailing zeros', () => {
+    expect(tgShort(1_800_000_000)).toBe('1,8 млрд ₸');
+    expect(tgShort(46_000_000)).toBe('46 млн ₸');
+  });
+  it('abbreviates millions with one decimal', () => {
+    expect(tgShort(2_400_000)).toBe('2,4 млн ₸');
+    expect(tgShort(45_990_000)).toBe('46 млн ₸');
+  });
+  it('keeps full form below a million', () => {
+    expect(tgShort(300_000)).toBe('300 000 ₸');
   });
 });
 

@@ -1,11 +1,14 @@
 import { buildMainReplyKeyboard, buildMoreMenu, buildNavFooter, shiftDay } from './keyboards';
 
 describe('buildMainReplyKeyboard', () => {
-  it('is 2×2 with a web_app dashboard key when tmaUrl set', () => {
+  // Reply-keyboard web_app buttons are keyboardButtonSimpleWebView: Telegram
+  // deliberately passes NO initData to them, so the dashboard key must be a
+  // plain text button whose handler answers with an inline web_app button.
+  it('is 2×2 with a plain-text dashboard key (no web_app) when tmaUrl set', () => {
     const kb = buildMainReplyKeyboard('https://tma.example');
     expect(kb.keyboard).toEqual([
       [{ text: '📊 Отчёт' }, { text: '👥 Мастера' }],
-      [{ text: '📱 Дашборд', web_app: { url: 'https://tma.example' } }, { text: '⚙️ Ещё' }],
+      [{ text: '📱 Дашборд' }, { text: '⚙️ Ещё' }],
     ]);
     expect(kb.resize_keyboard).toBe(true);
     expect(kb.is_persistent).toBe(true);
