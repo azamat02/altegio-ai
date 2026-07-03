@@ -367,12 +367,12 @@ body {
 
 .tab-bar__item {
   flex: 1;
-  padding: 12px 0;
+  padding: 6px 4px;
   background: none;
   border: none;
   border-bottom: 2px solid transparent;
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: 0.7rem;
   font-weight: 500;
   letter-spacing: 0.02em;
   cursor: pointer;
