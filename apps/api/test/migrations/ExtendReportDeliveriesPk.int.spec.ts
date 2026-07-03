@@ -1,5 +1,6 @@
 import { DataSource } from 'typeorm';
 import { PostgreSqlContainer, StartedPostgreSqlContainer } from '@testcontainers/postgresql';
+import { undoMigrationsThrough } from '../helpers/undo-migrations';
 
 describe('ExtendReportDeliveriesPk1700000014000', () => {
   let container: StartedPostgreSqlContainer;
@@ -47,10 +48,8 @@ describe('ExtendReportDeliveriesPk1700000014000', () => {
   });
 
   it('backfills chat_id in report_deliveries from tenants.telegram_chat_id on migration up', async () => {
-    // Roll back to before migration 14 (undo 16, 15, then 14).
-    await ds.undoLastMigration();
-    await ds.undoLastMigration();
-    await ds.undoLastMigration();
+    // Roll back until migration 14 itself is undone (count-independent).
+    await undoMigrationsThrough(ds, 'ExtendReportDeliveriesPk1700000014000');
 
     // Seed a tenant with telegram_chat_id and a report_deliveries row.
     const tenantResult = await ds.query(`

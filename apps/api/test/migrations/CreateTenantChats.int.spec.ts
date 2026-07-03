@@ -1,5 +1,6 @@
 import { DataSource } from 'typeorm';
 import { PostgreSqlContainer, StartedPostgreSqlContainer } from '@testcontainers/postgresql';
+import { undoMigrationsThrough } from '../helpers/undo-migrations';
 
 describe('CreateTenantChats1700000011000', () => {
   let container: StartedPostgreSqlContainer;
@@ -44,13 +45,8 @@ describe('CreateTenantChats1700000011000', () => {
   });
 
   it('backfills tenant_chats from tenants.telegram_chat_id on migration up', async () => {
-    // Roll back past migration 11 (undo 16, 15, 14, 13, 12, 11).
-    await ds.undoLastMigration();
-    await ds.undoLastMigration();
-    await ds.undoLastMigration();
-    await ds.undoLastMigration();
-    await ds.undoLastMigration();
-    await ds.undoLastMigration();
+    // Roll back until migration 11 itself is undone (count-independent).
+    await undoMigrationsThrough(ds, 'CreateTenantChats1700000011000');
 
     // Seed a tenant with telegram_chat_id set.
     await ds.query(`
