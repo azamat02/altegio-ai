@@ -96,6 +96,12 @@ body {
   gap: 12px;
 }
 
+.grid3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+
 /* ── Card ─────────────────────────────────────────────────── */
 
 .card {

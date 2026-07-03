@@ -6,6 +6,7 @@ import { api } from './api';
 import { Summary } from './screens/Summary';
 import { Staff } from './screens/Staff';
 import { Losses } from './screens/Losses';
+import { Clients } from './screens/Clients';
 import { TabBar, type TabId } from './components/TabBar';
 
 export default function App() {
@@ -76,7 +77,7 @@ export default function App() {
       {tab === 'summary' && <Summary summary={summary} />}
       {tab === 'staff' && <Staff />}
       {tab === 'losses' && <Losses />}
-      {tab === 'clients' && <p className="muted">Скоро</p>}
+      {tab === 'clients' && <Clients />}
     </div>
   );
 }

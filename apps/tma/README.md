@@ -13,3 +13,8 @@
 - Мастера: each card has ▲/▼/«новый» badge; salon totals line under the period selector; switching period refetches both.
 - Tap a master → detail screen (trend, услуги, клиенты, отмены/no-show); native Back button returns to the list; period is inherited.
 - `/tma/staff` WITHOUT compare=1 still returns the v1 array (curl check).
+
+## v2b smoke (in Telegram, BrowUp data)
+- Потери: hero «Вы теряете ~X в год», 4 карточки (за период / в год), «при возврате 30%» на карточке оттока, дисклеймер; переключение периода пересчитывает.
+- Клиенты: счётчики (всего/спящих/90+); пилюли 30/60/90 меняют список; у спящих кликабельный «Позвонить» (tel:); топ LTV снизу.
+- Старые вкладки (Сводка/Мастера) работают как раньше.
