@@ -4,18 +4,21 @@ export interface LossIngredients {
   revenue: number; visits: number; cancelled: number;
   noShowCount: number; noShowLost: number;
   bookedMin: number; capacityMin: number;
-  sleepingCount: number; avgCheck: number;
+  newSleeping: number; avgCheck: number;
 }
 
 export const CHURN_RETURN_RATE = 0.3;
 export const DEFAULT_TARGET_UTILIZATION_PCT = 80;
+// Below this, ×365/days extrapolation is noise (2 days into a month → ×182).
+export const MIN_ANNUALIZE_DAYS = 7;
 
 export function composeLosses(
   i: LossIngredients,
   periodDays: number,
   targetUtilizationPct: number = DEFAULT_TARGET_UTILIZATION_PCT,
 ): TmaLosses {
-  const annual = (period: number) => Math.round((period * 365) / periodDays);
+  const annualized = periodDays >= MIN_ANNUALIZE_DAYS;
+  const annual = (period: number) => (annualized ? Math.round((period * 365) / periodDays) : null);
   const block = (period: number) => ({ period: Math.round(period), annual: annual(period) });
 
   const cancellations = { count: i.cancelled, ...block(i.cancelled * i.avgCheck) };
@@ -34,15 +37,23 @@ export function composeLosses(
   }
   const idle = { idleHours, targetUtilizationPct, ...block(idlePeriod) };
 
+  // Churn must be a FLOW (clients who fell asleep during the period), never the
+  // whole sleeping stock: a stock multiplied by 365/periodDays produces absurd
+  // period-dependent billions (observed on real data).
   const churn = {
-    sleepingCount: i.sleepingCount,
+    newSleeping: i.newSleeping,
     returnRatePct: CHURN_RETURN_RATE * 100,
-    ...block(i.sleepingCount * i.avgCheck * CHURN_RETURN_RATE),
+    ...block(i.newSleeping * i.avgCheck * CHURN_RETURN_RATE),
   };
 
+  const totalPeriod = cancellations.period + noShow.period + idle.period + churn.period;
   return {
     periodDays,
+    annualized,
     cancellations, noShow, idle, churn,
-    totalAnnual: cancellations.annual + noShow.annual + idle.annual + churn.annual,
+    totalPeriod,
+    totalAnnual: annualized
+      ? cancellations.annual! + noShow.annual! + idle.annual! + churn.annual!
+      : null,
   };
 }

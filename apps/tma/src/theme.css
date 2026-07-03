@@ -77,8 +77,10 @@ body {
 .app {
   max-width: 480px;
   margin: 0 auto;
-  padding: env(safe-area-inset-top, 0) 16px env(safe-area-inset-bottom, 24px);
-  padding-top: calc(var(--safe-top, 0px) + max(env(safe-area-inset-top, 0px), 0px));
+  /* Telegram's safeAreaInset already includes the device status bar, so take
+     the max with env() instead of summing — summing doubled the top gap. */
+  --top-pad: max(var(--safe-top, 0px), env(safe-area-inset-top, 0px));
+  padding: var(--top-pad) 16px env(safe-area-inset-bottom, 24px);
 }
 
 /* ── Layout utilities ─────────────────────────────────────── */
@@ -371,32 +373,36 @@ body {
 
 .tab-bar {
   display: flex;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-card);
+  gap: 4px;
+  padding: 4px;
+  background: var(--bg-card-alt);
+  border: 1px solid var(--border);
+  border-radius: 14px;
   position: sticky;
-  top: 0;
+  top: calc(var(--top-pad, 0px) + 4px);
   z-index: 10;
-  margin: 0 -16px;
-  padding: 0 16px;
+  margin-bottom: 8px;
 }
 
 .tab-bar__item {
   flex: 1;
-  padding: 6px 4px;
+  padding: 8px 2px;
   background: none;
   border: none;
-  border-bottom: 2px solid transparent;
+  border-radius: 10px;
   color: var(--text-muted);
-  font-size: 0.7rem;
+  font-size: 12px;
   font-weight: 500;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
   cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
+  transition: color 0.15s, background 0.15s, box-shadow 0.15s;
 }
 
 .tab-bar__item.active {
+  background: var(--bg-card);
   color: var(--accent);
-  border-bottom-color: var(--accent);
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
 }
 
 /* ── Period selector pills ─────────────────────────────────── */

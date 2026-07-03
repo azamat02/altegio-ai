@@ -93,8 +93,7 @@ export class TmaService {
   async losses(tenantId: string, from: string, to: string): Promise<TmaLosses> {
     const t = await this.tenants.findById(tenantId);
     if (!t) throw new Error(`Tenant ${tenantId} not found`);
-    const sleepingCutoff = this.subtractDays(this.todayInTz(t.timezone), 60);
-    const ingredients: LossIngredients = await this.metrics.lossesData(tenantId, from, to, t.timezone, sleepingCutoff);
+    const ingredients: LossIngredients = await this.metrics.lossesData(tenantId, from, to, t.timezone);
     return composeLosses(ingredients, inclusiveDays(from, to), t.targetUtilizationPct ?? DEFAULT_TARGET_UTILIZATION_PCT);
   }
 

@@ -132,11 +132,14 @@ describe('TMA endpoints (int)', () => {
       .set('Authorization', `tma ${sign(42)}`)
       .expect(200);
     expect(res.body.periodDays).toBe(7);
+    expect(res.body.annualized).toBe(true);
     for (const k of ['cancellations', 'noShow', 'idle', 'churn']) {
       expect(res.body[k]).toMatchObject({ period: expect.any(Number), annual: expect.any(Number) });
     }
     expect(res.body.churn.returnRatePct).toBe(30);
+    expect(typeof res.body.churn.newSleeping).toBe('number');
     expect(res.body.idle.targetUtilizationPct).toBe(80);
+    expect(typeof res.body.totalPeriod).toBe('number');
     expect(typeof res.body.totalAnnual).toBe('number');
   });
 

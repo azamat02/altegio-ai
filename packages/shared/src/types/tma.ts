@@ -52,14 +52,18 @@ export interface StaffDetail {
   trend: TrendPoint[];         // 30d
 }
 
-export interface LossBlock { period: number; annual: number }
+// annual is null when the period is too short to extrapolate honestly (<7 days)
+export interface LossBlock { period: number; annual: number | null }
 export interface TmaLosses {
   periodDays: number;
+  annualized: boolean;
   cancellations: LossBlock & { count: number };
   noShow: LossBlock & { count: number };
   idle: LossBlock & { idleHours: number; targetUtilizationPct: number };
-  churn: LossBlock & { sleepingCount: number; returnRatePct: number };
-  totalAnnual: number;
+  // churn is a flow: clients who crossed the sleeping threshold DURING the period
+  churn: LossBlock & { newSleeping: number; returnRatePct: number };
+  totalPeriod: number;
+  totalAnnual: number | null;
 }
 export interface SleepingClient { name: string | null; phone: string | null; daysSince: number; visits: number; spent: number }
 export interface TopClient { name: string | null; phone: string | null; visits: number; spent: number }

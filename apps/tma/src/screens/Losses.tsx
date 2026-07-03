@@ -4,12 +4,12 @@ import { api } from '../api';
 import { tg, tgShort } from '../format';
 import { PeriodSelector, range, type PeriodKind } from '../components/PeriodSelector';
 
-function LossCard({ title, context, period, annual }: { title: string; context: string; period: number; annual: number }) {
+function LossCard({ title, context, period, annual }: { title: string; context: string; period: number; annual: number | null }) {
   return (
     <div className="card">
       <div className="row"><strong>{title}</strong><span className="num">{tg(period)}</span></div>
       <div className="muted small">{context}</div>
-      <div className="muted small">{`≈ ${tgShort(annual)} в год`}</div>
+      {annual != null && <div className="muted small">{`≈ ${tgShort(annual)} в год`}</div>}
     </div>
   );
 }
@@ -19,12 +19,14 @@ export function LossesView({ data: d }: { data: TmaLosses }) {
     <div className="stack">
       <div className="card card--hero">
         <div className="muted">Вы теряете примерно</div>
-        <div className="hero num">{`${tgShort(d.totalAnnual)} в год`}</div>
+        <div className="hero num">
+          {d.totalAnnual != null ? `${tgShort(d.totalAnnual)} в год` : `${tgShort(d.totalPeriod)} за ${d.periodDays} дн.`}
+        </div>
       </div>
       <LossCard title="Отмены" context={`${d.cancellations.count} отмен за период`} period={d.cancellations.period} annual={d.cancellations.annual} />
       <LossCard title="Не пришли" context={`${d.noShow.count} no-show за период`} period={d.noShow.period} annual={d.noShow.annual} />
       <LossCard title="Простой" context={`${d.idle.idleHours} свободных часов до загрузки ${d.idle.targetUtilizationPct}%`} period={d.idle.period} annual={d.idle.annual} />
-      <LossCard title="Отток" context={`${d.churn.sleepingCount} спящих клиентов · при возврате ${d.churn.returnRatePct}%`} period={d.churn.period} annual={d.churn.annual} />
+      <LossCard title="Отток" context={`${d.churn.newSleeping} клиентов уснули за период · при возврате ${d.churn.returnRatePct}%`} period={d.churn.period} annual={d.churn.annual} />
       <p className="muted small">Оценка по данным выбранного периода, не бухгалтерия.</p>
     </div>
   );

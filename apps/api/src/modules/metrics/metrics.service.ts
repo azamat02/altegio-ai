@@ -764,7 +764,7 @@ export class MetricsService {
   // lossesData: SQL ingredients for the losses screen
   // ---------------------------------------------------------------------------
 
-  async lossesData(tenantId: string, from: string, to: string, tz: string, sleepingCutoff: string) {
+  async lossesData(tenantId: string, from: string, to: string, tz: string, sleepingDays = 60) {
     const [rec] = await this.ds.query(
       `SELECT COALESCE(SUM(cost) FILTER (WHERE attendance = 1), 0)::numeric AS revenue,
               COUNT(*) FILTER (WHERE attendance = 1)::int AS visits,
@@ -783,12 +783,16 @@ export class MetricsService {
        WHERE tenant_id = $1 AND date BETWEEN $2 AND $3`,
       [tenantId, from, to],
     );
+    // Churn flow: clients whose sleeping threshold (last visit + sleepingDays)
+    // falls INSIDE [from..to]. A client who visited again since has a fresher
+    // last_visit_date and correctly drops out of the window.
     const [sleep] = await this.ds.query(
-      `SELECT COUNT(*)::int AS sleeping
+      `SELECT COUNT(*)::int AS newly_sleeping
        FROM clients
        WHERE tenant_id = $1 AND visits_count >= 1
-         AND last_visit_date IS NOT NULL AND last_visit_date < $2`,
-      [tenantId, sleepingCutoff],
+         AND last_visit_date IS NOT NULL
+         AND last_visit_date BETWEEN ($2::date - $4::int) AND ($3::date - $4::int)`,
+      [tenantId, from, to, sleepingDays],
     );
     const revenue = Math.round(Number(rec.revenue));
     const visits = Number(rec.visits);
@@ -800,7 +804,7 @@ export class MetricsService {
       noShowLost: Math.round(Number(rec.no_show_lost)),
       bookedMin: Number(rec.booked_sec) / 60,
       capacityMin: Number(cap.capacity_min),
-      sleepingCount: Number(sleep.sleeping),
+      newSleeping: Number(sleep.newly_sleeping),
       avgCheck: visits ? Math.round(revenue / visits) : 0,
     };
   }
