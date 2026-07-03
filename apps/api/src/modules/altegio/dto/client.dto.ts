@@ -6,6 +6,7 @@ export interface AltegioClientDto {
   visits_count?: number;
   last_visit_date?: string | null;
   spent?: number;
+  sold_amount?: number;
   paid?: number;
   balance?: number;
 }

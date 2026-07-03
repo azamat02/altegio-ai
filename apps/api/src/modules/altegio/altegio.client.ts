@@ -57,4 +57,19 @@ export class AltegioClient {
     const res = await this.limiter.schedule(() => this.http.request<T>(cfg));
     return res.data;
   }
+
+  async post<T>(
+    auth: AltegioAuthContext,
+    path: string,
+    body: Record<string, unknown> = {},
+  ): Promise<T> {
+    const cfg: AxiosRequestConfig = {
+      url: path,
+      method: 'POST',
+      data: body,
+      headers: { Authorization: buildAuthHeader(auth), 'Content-Type': 'application/json' },
+    };
+    const res = await this.limiter.schedule(() => this.http.request<T>(cfg));
+    return res.data;
+  }
 }
