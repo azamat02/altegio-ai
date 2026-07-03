@@ -26,12 +26,16 @@ entrypoint при старте.
 **TMA (4 таба, все данные живые):**
 - Сводка: KPI, 30-дн график, чипы динамики, фуллскрин ios/android.
 - Мастера: сравнение периодов, drill-down по мастеру.
-- Потери: hero «~X ₸/год»; **простой считается от целевой загрузки** (`tenants.
-  target_utilization_pct`, дефолт 80%, копирайт «до загрузки N%»), CLI `set-target-utilization
-  --tenant <id> --pct <n>`.
+- Потери (модель пофикшена хотфиксами 2026-07-03): **отток = поток уснувших за период**
+  (окно last_visit_date ∈ [from−60; to−60]), НЕ сток спящих (сток ×365/период давал
+  миллиарды); **периоды <7 дней не аннуализируются** (hero «X за N дн.», MIN_ANNUALIZE_DAYS);
+  простой от целевой загрузки (`tenants.target_utilization_pct`, дефолт 80%, CLI
+  `set-target-utilization`); hero-суммы компактно (`tgShort`: «1,85 млрд ₸») шрифтом DM Sans.
 - Клиенты: пороги 30/60/90, спящие с `tel:`, LTV-топ — **работает с v2c** (27 927 клиентов).
 - Все 5 экранных фетчей со stale-response guard (jsdom-контейнерные тесты в
   `clients.container.test.tsx`).
+- Навбар — сегмент-контрол (капсула, активный таб — белая карточка); safe-top считается как
+  `max(tg-inset, env())` — НЕ суммировать (двойной учёт = дыра сверху).
 
 **Клиентский синк (v2c, главный фикс):** `POST /company/{id}/clients/search` — деньги в поле
 **`sold_amount`** (не `spent`!), `last_visit_date` = `"YYYY-MM-DD HH:MM:SS"` или `""`. Полный
@@ -45,6 +49,9 @@ owner-чат 637406749. ~2.4М ₸/день, 38 мастеров.
 
 **Auth TMA:** initData HMAC (guard `tma-auth.guard.ts`) + фронтовый фоллбек из launch-hash —
 нативный macOS-клиент initData не передаёт (диагностический экран), iOS/Android ок.
+**ВАЖНО:** reply-клавиатурные `web_app`-кнопки — `SimpleWebView`, initData НЕ передают by
+design. Кнопка «📱 Дашборд» в клавиатуре — текстовая, hears-хендлер отвечает inline
+web_app-кнопкой (start.handler.ts). Не возвращать web_app в reply-клавиатуру.
 
 ## АДЖЕНДА СЛЕДУЮЩЕЙ СЕССИИ (хвосты, ничего срочного)
 
