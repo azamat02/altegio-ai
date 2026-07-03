@@ -43,4 +43,16 @@ export class TmaController {
     if (!d) throw new NotFoundException('unknown staff');
     return d;
   }
+
+  @Get('losses')
+  losses(@Req() req: any, @Query('from') from: string, @Query('to') to: string) {
+    return this.tma.losses(req.tma.tenantId, from, to);
+  }
+
+  @Get('clients')
+  clients(@Req() req: any, @Query('sleepingDays') sleepingDays?: string) {
+    const n = Number(sleepingDays);
+    const days = n === 30 || n === 60 || n === 90 ? n : 60;
+    return this.tma.clients(req.tma.tenantId, days);
+  }
 }

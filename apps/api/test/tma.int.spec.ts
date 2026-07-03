@@ -125,4 +125,27 @@ describe('TMA endpoints (int)', () => {
       .set('Authorization', `tma ${sign(42)}`)
       .expect(404);
   });
+
+  it('losses returns four blocks and an annual total', async () => {
+    const res = await request(app.getHttpServer())
+      .get('/tma/losses?from=2026-06-08&to=2026-06-14')
+      .set('Authorization', `tma ${sign(42)}`)
+      .expect(200);
+    expect(res.body.periodDays).toBe(7);
+    for (const k of ['cancellations', 'noShow', 'idle', 'churn']) {
+      expect(res.body[k]).toMatchObject({ period: expect.any(Number), annual: expect.any(Number) });
+    }
+    expect(res.body.churn.returnRatePct).toBe(30);
+    expect(typeof res.body.totalAnnual).toBe('number');
+  });
+
+  it('clients whitelists sleepingDays and returns lists', async () => {
+    const res = await request(app.getHttpServer())
+      .get('/tma/clients?sleepingDays=45') // invalid → falls back to 60
+      .set('Authorization', `tma ${sign(42)}`)
+      .expect(200);
+    expect(Array.isArray(res.body.sleeping)).toBe(true);
+    expect(Array.isArray(res.body.top)).toBe(true);
+    expect(typeof res.body.totalClients).toBe('number');
+  });
 });

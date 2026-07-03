@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { MetricsService } from '../metrics/metrics.service';
 import { TenantsService } from '../tenants/tenants.service';
-import type { TmaSummary, StaffTableRow, TrendPoint, StaffCompareResponse, StaffDetail } from '@altegio/shared';
-import { previousWindow } from './period';
+import type { TmaSummary, StaffTableRow, TrendPoint, StaffCompareResponse, StaffDetail, TmaLosses, TmaClients } from '@altegio/shared';
+import { previousWindow, inclusiveDays } from './period';
+import { composeLosses, type LossIngredients } from './losses';
 
 @Injectable()
 export class TmaService {
@@ -87,5 +88,23 @@ export class TmaService {
     const endDate = this.subtractDays(this.todayInTz(tz), 1);
     const trend = await this.metrics.staffRevenueTrend(tenantId, staffId, 30, endDate, tz);
     return { ...base, trend };
+  }
+
+  async losses(tenantId: string, from: string, to: string): Promise<TmaLosses> {
+    const tz = await this.tz(tenantId);
+    const sleepingCutoff = this.subtractDays(this.todayInTz(tz), 60);
+    const ingredients: LossIngredients = await this.metrics.lossesData(tenantId, from, to, tz, sleepingCutoff);
+    return composeLosses(ingredients, inclusiveDays(from, to));
+  }
+
+  async clients(tenantId: string, sleepingDays: 30 | 60 | 90): Promise<TmaClients> {
+    const tz = await this.tz(tenantId);
+    const today = this.todayInTz(tz);
+    return this.metrics.clientsAnalytics(
+      tenantId,
+      today,
+      this.subtractDays(today, sleepingDays),
+      this.subtractDays(today, 90),
+    );
   }
 }
